@@ -359,6 +359,32 @@ public class AdminController {
         return ResponseEntity.notFound().build();
     }
 
+    @PostMapping("/attendances/bulk-update")
+    public ResponseEntity<BulkUpdateResult> bulkUpdateAttendances(@RequestBody BulkUpdateRequest req) {
+        try {
+            AttendanceEntity.Status fromStatus = AttendanceEntity.Status.valueOf(req.getFromStatus().toUpperCase());
+            AttendanceEntity.Status toStatus = AttendanceEntity.Status.valueOf(req.getToStatus().toUpperCase());
+
+            List<AttendanceEntity> attendances = attendanceRepository.findBySessionIdAndStatus(req.getSessionId(), fromStatus);
+
+            for (AttendanceEntity attendance : attendances) {
+                attendance.setStatus(toStatus);
+            }
+
+            List<AttendanceEntity> updated = attendanceRepository.saveAll(attendances);
+
+            BulkUpdateResult result = new BulkUpdateResult();
+            result.setUpdatedCount(updated.size());
+            result.setFromStatus(req.getFromStatus());
+            result.setToStatus(req.getToStatus());
+            result.setSessionId(req.getSessionId());
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // Export CSV attendances for a session
     @GetMapping(value = "/export/{sessionId}")
     public ResponseEntity<byte[]> export(@PathVariable String sessionId) {
@@ -451,6 +477,26 @@ public class AdminController {
     public static class UpdateAttendance {
         private String status;
         private String meta;
+    }
+
+    @Data
+    public static class BulkUpdateRequest {
+        @NotBlank(message = "Session ID không được để trống")
+        private String sessionId;
+
+        @NotBlank(message = "Trạng thái nguồn không được để trống")
+        private String fromStatus;
+
+        @NotBlank(message = "Trạng thái đích không được để trống")
+        private String toStatus;
+    }
+
+    @Data
+    public static class BulkUpdateResult {
+        private int updatedCount;
+        private String fromStatus;
+        private String toStatus;
+        private String sessionId;
     }
 
     // helpers

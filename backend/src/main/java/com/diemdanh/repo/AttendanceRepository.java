@@ -15,6 +15,7 @@ public interface AttendanceRepository extends JpaRepository<AttendanceEntity, UU
     Page<AttendanceEntity> findByQrCodeValueContaining(String sessionId, Pageable pageable);
     Page<AttendanceEntity> findBySessionId(String sessionId, Pageable pageable);
     Page<AttendanceEntity> findBySessionIdAndStatus(String sessionId, AttendanceEntity.Status status, Pageable pageable);
+    List<AttendanceEntity> findBySessionIdAndStatus(String sessionId, AttendanceEntity.Status status);
     Page<AttendanceEntity> findByMssv(String mssv, Pageable pageable);
     Page<AttendanceEntity> findByMssvContainingIgnoreCase(String mssv, Pageable pageable);
 

@@ -4,6 +4,8 @@ import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
 import AttendPage from './pages/AttendPage'
 import AdminPage from './pages/AdminPage'
 import CreateSessionPage from './pages/CreateSessionPage'
+import AttendanceDetailPage from './pages/AttendanceDetailPage'
+import SessionDetailPage from './pages/SessionDetailPage'
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
 
 function App() {
@@ -205,6 +207,8 @@ function App() {
           <Route path="/attend" element={<AttendPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/create" element={<CreateSessionPage />} />
+          <Route path="/attendance-detail" element={<AttendanceDetailPage />} />
+          <Route path="/session-detail" element={<SessionDetailPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

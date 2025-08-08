@@ -19,6 +19,7 @@ import StatCard from '../components/StatCard'
 import ChartCard from '../components/ChartCard'
 import DataTable from '../components/DataTable'
 import NotificationCenter from '../components/NotificationCenter'
+import StatusDistributionCard from '../components/StatusDistributionCard'
 
 type Session = {
   sessionId: string
@@ -79,6 +80,9 @@ export default function AdminPage() {
 
 
   const [studentForm, setStudentForm] = useState<Partial<Student>>({})
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null)
+  const [editStudentForm, setEditStudentForm] = useState<Partial<Student>>({})
+  const [editingSession, setEditingSession] = useState<Session | null>(null)
 
   const [qrSessionId, setQrSessionId] = useState<string>('')
   const [qrAUrl, setQrAUrl] = useState<string>('')
@@ -92,8 +96,6 @@ export default function AdminPage() {
   // Dialog states
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false)
   const [studentDialogOpen, setStudentDialogOpen] = useState(false)
-  const [editingSession, setEditingSession] = useState<Session | null>(null)
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null)
 
   // Search and filter states
   const [sessionSearch, setSessionSearch] = useState('')
@@ -181,6 +183,88 @@ export default function AdminPage() {
       setLoading(false)
     }
   }
+
+  const updateStudent = async () => {
+    if (!editingStudent) return
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/students/${editingStudent.mssv}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editStudentForm)
+      })
+      if (response.ok) {
+        setEditingStudent(null)
+        setEditStudentForm({})
+        fetchStudents()
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openEditStudent = (student: Student) => {
+    setEditingStudent(student)
+    setEditStudentForm({
+      maLop: student.maLop,
+      hoTen: student.hoTen
+    })
+  }
+
+  const updateSession = async () => {
+    if (!editingSession) return
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/sessions/${editingSession.sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          maLop: editingSession.maLop,
+          startAt: editingSession.startAt,
+          endAt: editingSession.endAt,
+          rotateSeconds: editingSession.rotateSeconds
+        })
+      })
+      if (response.ok) {
+        setEditingSession(null)
+        fetchSessions()
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openEditSession = (session: Session) => {
+    setEditingSession(session)
+  }
+
+  const deleteSession = async (sessionId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa buổi học này?')) return
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/sessions/${sessionId}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        fetchSessions()
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchStats = useCallback(async () => {
+    if (!selectedSessionId) return
+    try {
+      const response = await fetch(`/api/admin/stats/${selectedSessionId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
+  }, [selectedSessionId])
 
   const importStudents = async () => {
     setLoading(true)
@@ -300,10 +384,10 @@ export default function AdminPage() {
       fetchSessions()
       fetchStudents()
       if (selectedSessionId) {
-        fetch(`/api/admin/stats/${selectedSessionId}`).then(r => r.json()).then(setStats)
+        fetchStats()
       }
     }
-  }, [tab, selectedSessionId, fetchSessions, fetchStudents])
+  }, [tab, selectedSessionId, fetchSessions, fetchStudents, fetchStats])
 
   // Poll QR B for created session
   useEffect(() => {
@@ -484,16 +568,39 @@ export default function AdminPage() {
                     />
                   </Grid>
                   <Grid item xs={12} md={4}>
-                    <ChartCard
-                      title="Phân bố trạng thái"
-                      subtitle="Tỷ lệ phần trăm"
-                      type="pie"
-                      data={[
-                        { label: 'Thành công', value: stats?.accepted || 0, color: '#10b981' },
-                        { label: 'Cần xem xét', value: stats?.review || 0, color: '#f59e0b' },
-                        { label: 'Thất bại', value: stats?.rejected || 0, color: '#ef4444' }
-                      ]}
-                      height={300}
+                    <StatusDistributionCard
+                      stats={stats || { total: 0, accepted: 0, review: 0, rejected: 0 }}
+                      sessionId={selectedSessionId}
+                      onViewDetails={(status) => {
+                        if (selectedSessionId) {
+                          window.open(`/attendance-detail?sessionId=${selectedSessionId}&status=${status}`, '_blank')
+                        }
+                      }}
+                      onBulkUpdate={async (fromStatus, toStatus, count) => {
+                        if (!selectedSessionId) return
+                        setLoading(true)
+                        try {
+                          const response = await fetch('/api/admin/attendances/bulk-update', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              sessionId: selectedSessionId,
+                              fromStatus: fromStatus.toUpperCase(),
+                              toStatus: toStatus.toUpperCase()
+                            })
+                          })
+                          if (response.ok) {
+                            const result = await response.json()
+                            alert(`Đã cập nhật ${result.updatedCount} bản ghi từ "${fromStatus}" thành "${toStatus}"`)
+                            fetchStats()
+                          }
+                        } catch (error) {
+                          console.error('Error bulk updating:', error)
+                          alert('Có lỗi xảy ra khi cập nhật hàng loạt')
+                        } finally {
+                          setLoading(false)
+                        }
+                      }}
                     />
                   </Grid>
                 </Grid>
@@ -518,7 +625,7 @@ export default function AdminPage() {
                         />
                         <LoadingButton
                           variant="contained"
-                          onClick={() => selectedSessionId && fetch(`/api/admin/stats/${selectedSessionId}`).then(r => r.json()).then(setStats)}
+                          onClick={() => selectedSessionId && fetchStats()}
                           disabled={!selectedSessionId}
                           startIcon={<Refresh />}
                           fullWidth
@@ -663,10 +770,34 @@ export default function AdminPage() {
                           color: 'secondary'
                         },
                         {
+                          label: 'Quản lý chi tiết',
+                          icon: <Assessment />,
+                          onClick: (row) => window.open(`/session-detail?sessionId=${row.sessionId}`, '_blank'),
+                          color: 'secondary'
+                        },
+                        {
+                          label: 'Chi tiết điểm danh',
+                          icon: <Visibility />,
+                          onClick: (row) => window.open(`/attendance-detail?sessionId=${row.sessionId}`, '_blank'),
+                          color: 'secondary'
+                        },
+                        {
                           label: 'Export CSV',
                           icon: <FileDownload />,
                           onClick: (row) => window.open(`/api/admin/export/${row.sessionId}`, '_blank'),
                           color: 'secondary'
+                        },
+                        {
+                          label: 'Chỉnh sửa',
+                          icon: <Edit />,
+                          onClick: (row) => openEditSession(row),
+                          color: 'primary'
+                        },
+                        {
+                          label: 'Xóa',
+                          icon: <Delete />,
+                          onClick: (row) => deleteSession(row.sessionId),
+                          color: 'error'
                         }
                       ]}
                     />
@@ -970,7 +1101,7 @@ export default function AdminPage() {
                         label: 'Chỉnh sửa',
                         icon: <Edit />,
                         onClick: (row) => {
-                          console.log('Edit student:', row)
+                          openEditStudent(row)
                         },
                         color: 'primary'
                       },
@@ -1349,6 +1480,133 @@ export default function AdminPage() {
         )}
 
         </Container>
+
+        {/* Edit Student Modal */}
+        <Dialog
+          open={editingStudent !== null}
+          onClose={() => setEditingStudent(null)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Edit sx={{ mr: 2, color: 'primary.main' }} />
+              Chỉnh sửa sinh viên
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <TextField
+                label="MSSV"
+                value={editingStudent?.mssv || ''}
+                disabled
+                fullWidth
+                variant="outlined"
+              />
+              <TextField
+                label="Mã lớp"
+                value={editStudentForm.maLop || ''}
+                onChange={(e) => setEditStudentForm({ ...editStudentForm, maLop: e.target.value })}
+                fullWidth
+                variant="outlined"
+              />
+              <TextField
+                label="Họ tên"
+                value={editStudentForm.hoTen || ''}
+                onChange={(e) => setEditStudentForm({ ...editStudentForm, hoTen: e.target.value })}
+                fullWidth
+                variant="outlined"
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditingStudent(null)}>
+              Hủy
+            </Button>
+            <LoadingButton
+              variant="contained"
+              onClick={updateStudent}
+              loading={loading}
+              disabled={!editStudentForm.maLop || !editStudentForm.hoTen}
+            >
+              Cập nhật
+            </LoadingButton>
+          </DialogActions>
+        </Dialog>
+
+        {/* Edit Session Modal */}
+        <Dialog
+          open={editingSession !== null}
+          onClose={() => setEditingSession(null)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Edit sx={{ mr: 2, color: 'primary.main' }} />
+              Chỉnh sửa buổi học
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <TextField
+                label="Session ID"
+                value={editingSession?.sessionId || ''}
+                disabled
+                fullWidth
+                variant="outlined"
+              />
+              <TextField
+                label="Mã lớp"
+                value={editingSession?.maLop || ''}
+                onChange={(e) => setEditingSession(prev => prev ? { ...prev, maLop: e.target.value } : null)}
+                fullWidth
+                variant="outlined"
+              />
+              <TextField
+                label="Thời gian bắt đầu"
+                type="datetime-local"
+                value={editingSession?.startAt ? new Date(editingSession.startAt).toISOString().slice(0, 16) : ''}
+                onChange={(e) => setEditingSession(prev => prev ? { ...prev, startAt: new Date(e.target.value).toISOString() } : null)}
+                fullWidth
+                variant="outlined"
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Thời gian kết thúc"
+                type="datetime-local"
+                value={editingSession?.endAt ? new Date(editingSession.endAt).toISOString().slice(0, 16) : ''}
+                onChange={(e) => setEditingSession(prev => prev ? { ...prev, endAt: new Date(e.target.value).toISOString() } : null)}
+                fullWidth
+                variant="outlined"
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Thời gian xoay QR (giây)"
+                type="number"
+                value={editingSession?.rotateSeconds || ''}
+                onChange={(e) => setEditingSession(prev => prev ? { ...prev, rotateSeconds: parseInt(e.target.value) } : null)}
+                fullWidth
+                variant="outlined"
+                inputProps={{ min: 5, max: 300 }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditingSession(null)}>
+              Hủy
+            </Button>
+            <LoadingButton
+              variant="contained"
+              onClick={updateSession}
+              loading={loading}
+              disabled={!editingSession?.maLop}
+            >
+              Cập nhật
+            </LoadingButton>
+          </DialogActions>
+        </Dialog>
+
       </Box>
     </>
   )
