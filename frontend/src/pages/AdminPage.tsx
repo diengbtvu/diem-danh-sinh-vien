@@ -145,7 +145,7 @@ export default function AdminPage() {
   const fetchSessions = useCallback(async () => {
     const params = new URLSearchParams({
       page: pageS.toString(),
-      size: '20',
+      size: '25',
       sortBy: sessionSort.column,
       sortDir: sessionSort.direction,
       ...(sessionSearch && { search: sessionSearch })

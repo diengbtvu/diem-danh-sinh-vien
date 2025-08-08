@@ -13,13 +13,13 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
 server:
-  port: 8081
+  port: 8082
 
 app:
-  faceApiUrl: http://14.225.220.60:5001
+  faceApiUrl: http://localhost:5001
   rotateSeconds: 20
   hmacSecret: change-me
-  frontendHost: http://14.225.220.60:8000
+  frontendHost: https://zettix.net
 
 # Attendance system configuration
 attendance:
@@ -39,7 +39,7 @@ attendance:
   max-image-size-mb: 5
 
   # Frontend URL template
-  frontend-url-template: "http://14.225.220.60:8000/attend?session={sessionToken}"
+  frontend-url-template: "https://zettix.net/attend?session={sessionToken}"
 
 logging:
   level:
