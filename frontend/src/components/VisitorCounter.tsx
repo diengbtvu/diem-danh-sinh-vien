@@ -1,6 +1,5 @@
 import React from 'react'
-import { Box, Typography, Grid, Paper, Chip } from '@mui/material'
-import { Visibility, Today, People } from '@mui/icons-material'
+import { Box, Typography } from '@mui/material'
 import { useVisitorCounter } from '../hooks/useVisitorCounter'
 
 export default function VisitorCounter() {
@@ -11,67 +10,26 @@ export default function VisitorCounter() {
   }
 
   return (
-    <Paper 
-      elevation={2} 
-      sx={{ 
-        p: 3, 
-        backgroundColor: '#f8f9fa',
-        border: '1px solid #e9ecef'
-      }}
-    >
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, textAlign: 'center', mb: 3 }}>
+    <Box sx={{ textAlign: 'center', py: 2 }}>
+      <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: 'grey.300' }}>
         Thống Kê Truy Cập
       </Typography>
-      
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Visibility sx={{ fontSize: 32, color: '#1976d2', mb: 1 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2' }}>
-              {formatNumber(totalVisits)}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Tổng lượt truy cập
-            </Typography>
-          </Box>
-        </Grid>
-        
-        <Grid item xs={12} sm={4}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Today sx={{ fontSize: 32, color: '#4caf50', mb: 1 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#4caf50' }}>
-              {formatNumber(todayVisits)}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Hôm nay
-            </Typography>
-          </Box>
-        </Grid>
-        
-        <Grid item xs={12} sm={4}>
-          <Box sx={{ textAlign: 'center' }}>
-            <People sx={{ fontSize: 32, color: '#ff9800', mb: 1 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600, color: '#ff9800' }}>
-              {formatNumber(onlineUsers)}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Đang online
-            </Typography>
-          </Box>
-        </Grid>
-      </Grid>
-      
-      <Box sx={{ textAlign: 'center', mt: 2 }}>
-        <Chip 
-          label="Cập nhật realtime" 
-          size="small" 
-          sx={{ 
-            backgroundColor: '#e3f2fd', 
-            color: '#1976d2',
-            fontSize: '0.75rem'
-          }} 
-        />
-      </Box>
-    </Paper>
+
+      <Typography variant="body2" sx={{ color: 'grey.400', mb: 0.5 }}>
+        <strong>{formatNumber(totalVisits)}</strong> Tổng lượt truy cập
+      </Typography>
+
+      <Typography variant="body2" sx={{ color: 'grey.400', mb: 0.5 }}>
+        <strong>{formatNumber(todayVisits)}</strong> Hôm nay
+      </Typography>
+
+      <Typography variant="body2" sx={{ color: 'grey.400', mb: 1 }}>
+        <strong>{formatNumber(onlineUsers)}</strong> Đang online
+      </Typography>
+
+      <Typography variant="caption" sx={{ color: 'grey.500', fontStyle: 'italic' }}>
+        Cập nhật realtime
+      </Typography>
+    </Box>
   )
 }

@@ -9,10 +9,15 @@ import {
   CheckCircle, People, Dashboard, Login
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
-import VisitorCounter from '../components/VisitorCounter'
+import { useVisitorCounter } from '../hooks/useVisitorCounter'
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const { totalVisits, todayVisits, onlineUsers } = useVisitorCounter()
+
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString('vi-VN')
+  }
 
   const features = [
     {
@@ -292,63 +297,76 @@ export default function HomePage() {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ backgroundColor: '#333', color: 'white', py: 6 }}>
+      <Box sx={{ backgroundColor: '#333', color: 'white', py: 4 }}>
         <Container maxWidth="lg">
-          <Grid container spacing={4}>
-            <Grid item xs={12}>
-              <VisitorCounter />
+          <Grid container spacing={4} sx={{ alignItems: 'flex-start' }}>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Đại Học An Giang
+                </Typography>
+                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
+                  18 Ung Văn Khiêm, Phường Đông Xuyên<br />
+                  TP. Long Xuyên, An Giang
+                </Typography>
+                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
+                  ☎ (0296) 3841 390
+                </Typography>
+                <Typography variant="body2" color="grey.400">
+                  ✉ dhag@agu.edu.vn
+                </Typography>
+              </Box>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Đại Học An Giang
-              </Typography>
-              <Typography variant="body2" color="grey.400" paragraph>
-                Trường đại học công lập đa ngành, đa lĩnh vực tại khu vực Đồng bằng sông Cửu Long
-              </Typography>
-              <Typography variant="body2" color="grey.400">
-                <strong>Địa chỉ:</strong> 18 Ung Văn Khiêm, Phường Đông Xuyên, TP. Long Xuyên, An Giang
-              </Typography>
-              <Typography variant="body2" color="grey.400">
-                <strong>Điện thoại:</strong> (0296) 3841 390
-              </Typography>
-              <Typography variant="body2" color="grey.400">
-                <strong>Email:</strong> dhag@agu.edu.vn
-              </Typography>
-              <Typography variant="body2" color="grey.400">
-                <strong>Website:</strong> www.agu.edu.vn
-              </Typography>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Hệ Thống Điểm Danh
+                </Typography>
+                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
+                  Phiên bản: 1.0.0
+                </Typography>
+                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
+                  Cập nhật: Tháng 8, 2024
+                </Typography>
+                <Typography variant="body2" color="grey.400">
+                  Hỗ trợ: support@agu.edu.vn
+                </Typography>
+              </Box>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Hệ Thống Điểm Danh
-              </Typography>
-              <Typography variant="body2" color="grey.400" paragraph>
-                Giải pháp điểm danh thông minh với công nghệ QR Code và AI nhận diện khuôn mặt
-              </Typography>
-              <Typography variant="body2" color="grey.400">
-                <strong>Phiên bản:</strong> 1.0.0
-              </Typography>
-              <Typography variant="body2" color="grey.400">
-                <strong>Cập nhật:</strong> Tháng 8, 2024
-              </Typography>
-              <Typography variant="body2" color="grey.400">
-                <strong>Hỗ trợ:</strong> support@agu.edu.vn
-              </Typography>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Phát Triển Bởi
+                </Typography>
+                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
+                  Khoa Công nghệ Thông tin
+                </Typography>
+                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
+                  Đại học An Giang
+                </Typography>
+                <Typography variant="body2" color="orange.300" sx={{ fontStyle: 'italic' }}>
+                  Đang phát triển
+                </Typography>
+              </Box>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Phát Triển Bởi
-              </Typography>
-              <Typography variant="body2" color="grey.400" paragraph>
-                Khoa Công nghệ Thông tin<br />
-                Đại học An Giang
-              </Typography>
-              <Typography variant="body2" color="orange.300" sx={{ fontStyle: 'italic' }}>
-                Trang web đang trong quá trình phát triển
-              </Typography>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Thống Kê Truy Cập
+                </Typography>
+                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
+                  <strong>{formatNumber(totalVisits)}</strong> Tổng lượt truy cập
+                </Typography>
+                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
+                  <strong>{formatNumber(todayVisits)}</strong> Hôm nay
+                </Typography>
+                <Typography variant="body2" color="grey.400">
+                  <strong>{formatNumber(onlineUsers)}</strong> Đang online
+                </Typography>
+              </Box>
             </Grid>
           </Grid>
 
@@ -359,13 +377,11 @@ export default function HomePage() {
               <Typography variant="body2" color="grey.400">
                 © 2024 Đại học An Giang. Tất cả quyền được bảo lưu.
               </Typography>
-              <Typography variant="body2" color="orange.300" sx={{ mt: 1, fontStyle: 'italic' }}>
-                Trang web đang trong quá trình phát triển - Một số tính năng có thể chưa hoàn thiện
-              </Typography>
+
             </Grid>
             <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
               <Typography variant="body2" color="grey.400">
-                Phiên bản 1.0.0 - Build 2024.08
+                v1.0.0 - Build 2024.08
               </Typography>
             </Grid>
           </Grid>
