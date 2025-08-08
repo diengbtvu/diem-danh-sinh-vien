@@ -171,7 +171,7 @@ export default function AttendPage() {
 
   return (
     <>
-      <AppBar position="static" sx={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2', borderRadius: 0 }}>
         <Toolbar>
           <QrCodeScanner sx={{ mr: 2 }} />
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
@@ -186,7 +186,7 @@ export default function AttendPage() {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ background: 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)', minHeight: '100vh' }}>
+      <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
         <Container sx={{ py: 4 }}>
           <Grid container spacing={3}>
             {/* Main Camera Section */}
@@ -228,7 +228,7 @@ export default function AttendPage() {
                 {cameraReady && !rotatingToken && (
                   <Alert severity="info" sx={{ mt: 2 }}>
                     <Typography variant="body2">
-                      📱 Đang chờ giảng viên kích hoạt QR B trên màn hình lớp...
+                      Đang chờ giảng viên kích hoạt QR B trên màn hình lớp...
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                       Khi QR B xuất hiện, hãy hướng camera vào QR để quét
@@ -239,7 +239,7 @@ export default function AttendPage() {
                 {rotatingToken && (
                   <Alert severity="success" sx={{ mt: 2 }}>
                     <Typography variant="body2">
-                      ✅ Đã nhận QR B thành công! Bây giờ hãy chụp ảnh khuôn mặt để hoàn tất điểm danh.
+                      Đã nhận QR B thành công! Bây giờ hãy chụp ảnh khuôn mặt để hoàn tất điểm danh.
                     </Typography>
                   </Alert>
                 )}
@@ -351,9 +351,9 @@ export default function AttendPage() {
                         sx={{ mb: 2 }}
                       >
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {result.status === 'ACCEPTED' ? '✅ Điểm danh thành công! Đã lưu vào hệ thống.' :
-                           result.status === 'REVIEW' ? '⚠️ Cần xem xét thêm - Đã lưu để giáo viên duyệt' :
-                           '❌ Điểm danh thất bại - Đã ghi nhận để xem xét'}
+                          {result.status === 'ACCEPTED' ? 'Điểm danh thành công! Đã lưu vào hệ thống.' :
+                           result.status === 'REVIEW' ? 'Cần xem xét thêm - Đã lưu để giáo viên duyệt' :
+                           'Điểm danh thất bại - Đã ghi nhận để xem xét'}
                         </Typography>
                       </Alert>
                       <Stack spacing={1}>

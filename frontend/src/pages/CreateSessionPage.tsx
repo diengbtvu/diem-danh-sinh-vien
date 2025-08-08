@@ -126,7 +126,7 @@ export default function CreateSessionPage() {
 
               <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  📋 Thông tin buổi học
+                  Thông tin buổi học
                 </Typography>
                 <Stack spacing={2}>
                   <Box>
@@ -161,7 +161,7 @@ export default function CreateSessionPage() {
 
               <Paper sx={{ p: 3, bgcolor: 'primary.50' }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  📱 QR Code cho sinh viên
+                  QR Code cho sinh viên
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <TextField

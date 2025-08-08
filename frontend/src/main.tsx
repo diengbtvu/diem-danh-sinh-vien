@@ -1,12 +1,15 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
+import HomePage from './pages/HomePage'
 import AttendPage from './pages/AttendPage'
 import AdminPage from './pages/AdminPage'
 import CreateSessionPage from './pages/CreateSessionPage'
 import AttendanceDetailPage from './pages/AttendanceDetailPage'
 import SessionDetailPage from './pages/SessionDetailPage'
 import TestPage from './pages/TestPage'
+import DebugPage from './pages/DebugPage'
+import SimpleAttendanceDetailPage from './pages/SimpleAttendanceDetailPage'
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
 
 function App() {
@@ -204,13 +207,15 @@ function App() {
       <CssBaseline />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/admin" replace />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/attend" element={<AttendPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/create" element={<CreateSessionPage />} />
           <Route path="/attendance-detail" element={<AttendanceDetailPage />} />
           <Route path="/session-detail" element={<SessionDetailPage />} />
           <Route path="/test" element={<TestPage />} />
+          <Route path="/debug" element={<DebugPage />} />
+          <Route path="/simple-attendance" element={<SimpleAttendanceDetailPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

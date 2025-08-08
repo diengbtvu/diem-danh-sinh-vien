@@ -23,7 +23,7 @@ export default function StatusCard({
     <Card 
       sx={{ 
         height: '100%',
-        background: `linear-gradient(135deg, ${color}.light 0%, ${color}.main 100%)`,
+        backgroundColor: `${color}.main`,
         color: 'white',
         ...sx 
       }}

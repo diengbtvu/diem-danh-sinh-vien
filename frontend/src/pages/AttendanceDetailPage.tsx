@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import {
   AppBar, Toolbar, Typography, Container, Box, Grid, Paper, TextField,
-  Button, Stack, Alert, Chip, IconButton, Tooltip, Fade, Dialog,
+  Button, Stack, Alert, Chip, IconButton, Dialog,
   DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material'
 import {
@@ -65,7 +65,11 @@ export default function AttendanceDetailPage() {
   const [sort, setSort] = useState({ column: 'capturedAt', direction: 'desc' })
 
   const fetchSession = useCallback(async () => {
-    if (!sessionId) return
+    if (!sessionId) {
+      // No specific session, set session to null
+      setSession(null)
+      return
+    }
     try {
       const response = await fetch(`/api/admin/sessions/${sessionId}`)
       if (response.ok) {
@@ -78,15 +82,14 @@ export default function AttendanceDetailPage() {
   }, [sessionId])
 
   const fetchAttendances = useCallback(async () => {
-    if (!sessionId) return
     setLoading(true)
     try {
       const params = new URLSearchParams({
-        sessionId,
         page: page.toString(),
         size: '20',
         sortBy: sort.column,
         sortDir: sort.direction,
+        ...(sessionId && { sessionId }),
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter })
       })
@@ -103,17 +106,31 @@ export default function AttendanceDetailPage() {
   }, [sessionId, page, sort, search, statusFilter])
 
   const fetchStats = useCallback(async () => {
-    if (!sessionId) return
     try {
-      console.log('Fetching stats for sessionId:', sessionId)
-      const response = await fetch(`/api/admin/stats/${sessionId}`)
-      console.log('Stats response status:', response.status)
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Stats data received:', data)
-        setStats(data)
+      if (sessionId) {
+        // Fetch stats for specific session
+        console.log('Fetching stats for sessionId:', sessionId)
+        const response = await fetch(`/api/admin/stats/${sessionId}`)
+        console.log('Stats response status:', response.status)
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Stats data received:', data)
+          setStats(data)
+        } else {
+          console.error('Failed to fetch stats:', response.status, response.statusText)
+        }
       } else {
-        console.error('Failed to fetch stats:', response.status, response.statusText)
+        // Fetch dashboard stats (all sessions)
+        console.log('Fetching dashboard stats (all sessions)')
+        const response = await fetch('/api/admin/dashboard/stats')
+        console.log('Dashboard stats response status:', response.status)
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Dashboard stats data received:', data)
+          setStats(data)
+        } else {
+          console.error('Failed to fetch dashboard stats:', response.status, response.statusText)
+        }
       }
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -240,7 +257,7 @@ export default function AttendanceDetailPage() {
       case 'ACCEPTED': return <CheckCircle />
       case 'REVIEW': return <Warning />
       case 'REJECTED': return <Error />
-      default: return null
+      default: return undefined
     }
   }
 
@@ -253,13 +270,7 @@ export default function AttendanceDetailPage() {
     }
   }
 
-  if (!sessionId) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error">Session ID không hợp lệ</Alert>
-      </Container>
-    )
-  }
+
 
   console.log('Rendering AttendanceDetailPage with sessionId:', sessionId, 'stats:', stats)
 
@@ -276,7 +287,7 @@ export default function AttendanceDetailPage() {
             <ArrowBack />
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Chi tiết điểm danh - {session?.maLop || sessionId}
+            {sessionId ? `Chi tiết điểm danh - ${session?.maLop || sessionId}` : 'Tất cả điểm danh'}
           </Typography>
           <IconButton color="inherit" onClick={() => {
             fetchAttendances()
@@ -350,7 +361,7 @@ export default function AttendanceDetailPage() {
               <Grid item xs={12} md={6}>
                 <StatusDistributionCard
                   stats={stats}
-                  sessionId={sessionId}
+                  sessionId={sessionId || undefined}
                   onViewDetails={(status) => {
                     if (status !== 'all') {
                       setStatusFilter(status.toUpperCase())
@@ -446,9 +457,9 @@ export default function AttendanceDetailPage() {
                 sortable: true
               },
               {
-                id: 'hoTen',
+                id: 'mssv',
                 label: 'Họ tên',
-                format: (_, row) => getStudentName(row.mssv)
+                format: (value: any) => getStudentName(value)
               },
               {
                 id: 'capturedAt',

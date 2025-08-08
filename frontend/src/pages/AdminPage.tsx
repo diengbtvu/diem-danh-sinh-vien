@@ -92,6 +92,13 @@ export default function AdminPage() {
 
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
   const [stats, setStats] = useState<{ total: number; accepted: number; review: number; rejected: number } | null>(null)
+  const [dashboardStats, setDashboardStats] = useState<{ total: number; accepted: number; review: number; rejected: number } | null>(null)
+  const [overview, setOverview] = useState<{
+    totalSessions: number
+    totalStudents: number
+    totalAttendances: number
+    recentAttendances: number
+  } | null>(null)
 
   // Dialog states
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false)
@@ -266,6 +273,32 @@ export default function AdminPage() {
     }
   }, [selectedSessionId])
 
+  const fetchOverview = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/dashboard/overview')
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Overview data received:', data)
+        setOverview(data)
+      }
+    } catch (error) {
+      console.error('Error fetching overview:', error)
+    }
+  }, [])
+
+  const fetchDashboardStats = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/dashboard/stats')
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Dashboard stats received:', data)
+        setDashboardStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error)
+    }
+  }, [])
+
   const importStudents = async () => {
     setLoading(true)
     try {
@@ -381,13 +414,15 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab === 'dashboard') {
       // Load basic data for dashboard
+      fetchOverview()
+      fetchDashboardStats()
       fetchSessions()
       fetchStudents()
       if (selectedSessionId) {
         fetchStats()
       }
     }
-  }, [tab, selectedSessionId, fetchSessions, fetchStudents, fetchStats])
+  }, [tab, selectedSessionId, fetchSessions, fetchStudents, fetchStats, fetchOverview, fetchDashboardStats])
 
   // Poll QR B for created session
   useEffect(() => {
@@ -425,7 +460,7 @@ export default function AdminPage() {
 
   return (
     <>
-      <AppBar position="static" sx={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%)' }}>
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2', borderRadius: 0 }}>
         <Toolbar>
           <Dashboard sx={{ mr: 2 }} />
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
@@ -441,7 +476,7 @@ export default function AdminPage() {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ background: 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)', minHeight: '100vh' }}>
+      <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
         <Container sx={{ py: 4 }}>
           <Paper elevation={2} sx={{ mb: 3 }}>
             <Tabs
@@ -497,41 +532,33 @@ export default function AdminPage() {
                   <Grid item xs={12} sm={6} md={3}>
                     <StatCard
                       title="Tổng buổi học"
-                      value={sessions?.totalElements || 0}
+                      value={overview?.totalSessions || 0}
                       subtitle="Buổi học đã tạo"
                       icon={<School />}
                       color="primary"
-                      trend={{
-                        value: 12,
-                        label: 'so với tháng trước',
-                        direction: 'up'
-                      }}
+
                     />
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
                     <StatCard
                       title="Sinh viên"
-                      value={students?.totalElements || 0}
+                      value={overview?.totalStudents || 0}
                       subtitle="Đã đăng ký"
                       icon={<People />}
                       color="secondary"
-                      trend={{
-                        value: 8,
-                        label: 'so với tháng trước',
-                        direction: 'up'
-                      }}
+
                     />
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
                     <StatCard
                       title="Điểm danh hôm nay"
-                      value={stats?.total || 0}
+                      value={overview?.recentAttendances || 0}
                       subtitle="Lượt điểm danh"
                       icon={<CheckCircle />}
                       color="success"
                       progress={{
-                        value: stats?.accepted || 0,
-                        max: stats?.total || 1,
+                        value: dashboardStats?.accepted || 0,
+                        max: dashboardStats?.total || 1,
                         label: 'Thành công'
                       }}
                     />
@@ -539,15 +566,11 @@ export default function AdminPage() {
                   <Grid item xs={12} sm={6} md={3}>
                     <StatCard
                       title="Tỷ lệ thành công"
-                      value={stats ? `${Math.round((stats.accepted / Math.max(stats.total, 1)) * 100)}%` : '0%'}
+                      value={dashboardStats ? `${Math.round((dashboardStats.accepted / Math.max(dashboardStats.total, 1)) * 100)}%` : '0%'}
                       subtitle="Điểm danh thành công"
                       icon={<TrendingUp />}
                       color="info"
-                      trend={{
-                        value: 5,
-                        label: 'so với tuần trước',
-                        direction: 'up'
-                      }}
+
                     />
                   </Grid>
                 </Grid>
@@ -557,23 +580,32 @@ export default function AdminPage() {
                   <Grid item xs={12} md={8}>
                     <ChartCard
                       title="Thống kê điểm danh theo trạng thái"
-                      subtitle="Dữ liệu từ session hiện tại"
+                      subtitle={selectedSessionId ? "Dữ liệu từ session hiện tại" : "Dữ liệu tổng hợp"}
                       type="bar"
-                      data={[
-                        { label: 'Thành công', value: stats?.accepted || 0, color: '#10b981' },
-                        { label: 'Cần xem xét', value: stats?.review || 0, color: '#f59e0b' },
-                        { label: 'Thất bại', value: stats?.rejected || 0, color: '#ef4444' }
-                      ]}
+                      data={(() => {
+                        const currentStats = stats || dashboardStats;
+                        const chartData = [
+                          { label: 'Thành công', value: currentStats?.accepted || 0, color: '#10b981' },
+                          { label: 'Cần xem xét', value: currentStats?.review || 0, color: '#f59e0b' },
+                          { label: 'Thất bại', value: currentStats?.rejected || 0, color: '#ef4444' }
+                        ];
+                        console.log('ChartCard data:', chartData, 'currentStats:', currentStats);
+                        return chartData;
+                      })()}
                       height={300}
                     />
                   </Grid>
                   <Grid item xs={12} md={4}>
                     <StatusDistributionCard
-                      stats={stats || { total: 0, accepted: 0, review: 0, rejected: 0 }}
+                      stats={stats || dashboardStats || { total: 0, accepted: 0, review: 0, rejected: 0 }}
                       sessionId={selectedSessionId}
                       onViewDetails={(status) => {
                         if (selectedSessionId) {
+                          // Xem chi tiết session cụ thể
                           window.open(`/attendance-detail?sessionId=${selectedSessionId}&status=${status}`, '_blank')
+                        } else {
+                          // Xem tất cả điểm danh từ tất cả sessions
+                          window.open(`/attendance-detail?status=${status}`, '_blank')
                         }
                       }}
                       onBulkUpdate={async (fromStatus, toStatus, count) => {
@@ -1147,7 +1179,7 @@ export default function AdminPage() {
 
                           <Paper sx={{ p: 3, bgcolor: 'grey.50' }}>
                             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                              📋 Thông tin buổi học
+                              Thông tin buổi học
                             </Typography>
                             <Grid container spacing={2}>
                               <Grid item xs={12} md={6}>
@@ -1175,7 +1207,7 @@ export default function AdminPage() {
                           <Paper sx={{ p: 3, bgcolor: 'primary.50' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                               <Typography variant="h6" sx={{ fontWeight: 600, flexGrow: 1 }}>
-                                📱 QR Code điểm danh
+                                QR Code điểm danh
                               </Typography>
                               <Chip
                                 label={createQr2Active ? 'QR B đang hoạt động' : 'Chờ sinh viên'}
@@ -1286,7 +1318,7 @@ export default function AdminPage() {
                             </Grid>
 
                             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                              💡 Sinh viên quét QR A trước, sau đó quét QR B để hoàn tất điểm danh
+                              Sinh viên quét QR A trước, sau đó quét QR B để hoàn tất điểm danh
                             </Typography>
                           </Paper>
 
@@ -1427,7 +1459,7 @@ export default function AdminPage() {
                       <Card>
                         <CardContent>
                           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                            📊 Thống kê nhanh
+                            Thống kê nhanh
                           </Typography>
                           <Stack spacing={2}>
                             <Box>
@@ -1453,7 +1485,7 @@ export default function AdminPage() {
                       <Card>
                         <CardContent>
                           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                            💡 Hướng dẫn
+                            Hướng dẫn
                           </Typography>
                           <Stack spacing={1}>
                             <Typography variant="body2">

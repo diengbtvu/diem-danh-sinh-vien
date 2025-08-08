@@ -36,49 +36,57 @@ export default function ChartCard({
     theme.palette.info.main
   ]
 
-  const maxValue = Math.max(...data.map(d => d.value))
+  const maxValue = Math.max(...data.map(d => d.value), 1) // Ensure minimum value of 1
 
-  const renderBarChart = () => (
-    <Box sx={{ display: 'flex', alignItems: 'end', gap: 1, height: height - 60, px: 1 }}>
-      {data.map((item, index) => (
-        <Box key={index} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Box
-            sx={{
-              width: '100%',
-              maxWidth: 40,
-              height: `${(item.value / maxValue) * 100}%`,
-              bgcolor: item.color || colors[index % colors.length],
-              borderRadius: '4px 4px 0 0',
-              minHeight: 4,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                opacity: 0.8,
-                transform: 'scaleY(1.05)'
-              }
-            }}
-          />
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              mt: 1, 
-              textAlign: 'center',
-              fontSize: '0.7rem',
-              fontWeight: 500
-            }}
-          >
-            {item.label}
-          </Typography>
-          <Typography 
-            variant="caption" 
-            color="text.secondary"
-            sx={{ fontSize: '0.65rem' }}
-          >
-            {item.value}
-          </Typography>
-        </Box>
-      ))}
-    </Box>
-  )
+  const renderBarChart = () => {
+    console.log('Rendering bar chart with data:', data, 'maxValue:', maxValue);
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'end', gap: 1, height: height - 60, px: 1, minHeight: 200 }}>
+        {data.map((item, index) => {
+          const barHeight = maxValue > 0 ? (item.value / maxValue) * 80 : 0; // Use 80% of container height
+          console.log(`Bar ${index}: value=${item.value}, height=${barHeight}%`);
+
+          return (
+            <Box key={index} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 60 }}>
+              <Box
+                sx={{
+                  width: '100%',
+                  maxWidth: 40,
+                  height: Math.max(barHeight, 4), // Minimum height of 4px
+                  bgcolor: item.color || colors[index % colors.length],
+                  borderRadius: '4px 4px 0 0',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    opacity: 0.8,
+                    transform: 'scaleY(1.05)'
+                  }
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 1,
+                  textAlign: 'center',
+                  fontSize: '0.7rem',
+                  fontWeight: 500
+                }}
+              >
+                {item.label}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontSize: '0.65rem' }}
+              >
+                {item.value}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+    );
+  }
 
   const renderPieChart = () => {
     const total = data.reduce((sum, item) => sum + item.value, 0)

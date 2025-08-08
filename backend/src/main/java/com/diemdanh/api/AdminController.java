@@ -308,6 +308,30 @@ public class AdminController {
         return overview;
     }
 
+    @GetMapping("/dashboard/stats")
+    public ResponseEntity<Stats> getDashboardStats() {
+        try {
+            // Get all attendances
+            List<AttendanceEntity> allAttendances = attendanceRepository.findAll();
+
+            long accepted = allAttendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.ACCEPTED ? 1 : 0).sum();
+            long review = allAttendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.REVIEW ? 1 : 0).sum();
+            long rejected = allAttendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.REJECTED ? 1 : 0).sum();
+
+            Stats stats = new Stats();
+            stats.setAccepted(accepted);
+            stats.setReview(review);
+            stats.setRejected(rejected);
+            stats.setTotal(accepted + review + rejected);
+
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            System.err.println("Error getting dashboard stats: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping("/stats/time-range")
     public ResponseEntity<TimeRangeStats> getTimeRangeStats(
             @RequestParam String startDate,

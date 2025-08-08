@@ -162,15 +162,17 @@ export default function StatusDistributionCard({
 
           {showActions && onViewDetails && (
             <Box sx={{ mt: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<Assessment />}
-                onClick={() => onViewDetails('all')}
-                fullWidth
-                size="small"
-              >
-                Xem báo cáo chi tiết
-              </Button>
+              <Tooltip title="Xem chi tiết tất cả điểm danh theo trạng thái">
+                <Button
+                  variant="outlined"
+                  startIcon={<Assessment />}
+                  onClick={() => onViewDetails('all')}
+                  fullWidth
+                  size="small"
+                >
+                  Xem báo cáo chi tiết
+                </Button>
+              </Tooltip>
             </Box>
           )}
         </CardContent>
