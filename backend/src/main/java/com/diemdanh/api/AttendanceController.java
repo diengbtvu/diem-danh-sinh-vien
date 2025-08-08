@@ -22,6 +22,13 @@ import java.time.Instant;
 @RestController
 @RequestMapping("/api/attendances")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {
+    "https://zettix.net",
+    "https://www.zettix.net",
+    "http://localhost:8000",
+    "http://localhost:5173",
+    "http://localhost:5174"
+}, allowCredentials = "true")
 public class AttendanceController {
     private final QrTokenService qrTokenService;
     private final SessionService sessionService;
