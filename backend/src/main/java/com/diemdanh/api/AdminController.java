@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.UUID;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -256,16 +257,41 @@ public class AdminController {
 
     // Dashboard stats
     @GetMapping("/stats/{sessionId}")
-    public Stats stats(@PathVariable String sessionId) {
-        long accepted = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.ACCEPTED);
-        long review = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.REVIEW);
-        long rejected = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.REJECTED);
-        Stats s = new Stats();
-        s.setAccepted(accepted);
-        s.setReview(review);
-        s.setRejected(rejected);
-        s.setTotal(accepted + review + rejected);
-        return s;
+    public ResponseEntity<Stats> stats(@PathVariable String sessionId) {
+        try {
+            System.out.println("Getting stats for sessionId: " + sessionId);
+
+            // Validate sessionId
+            if (sessionId == null || sessionId.trim().isEmpty()) {
+                System.err.println("Invalid sessionId: " + sessionId);
+                return ResponseEntity.badRequest().build();
+            }
+
+            // Check if session exists
+            boolean sessionExists = sessionRepository.existsById(sessionId);
+            if (!sessionExists) {
+                System.err.println("Session not found: " + sessionId);
+                return ResponseEntity.notFound().build();
+            }
+
+            long accepted = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.ACCEPTED);
+            long review = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.REVIEW);
+            long rejected = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.REJECTED);
+
+            System.out.println("Stats for session " + sessionId + ": accepted=" + accepted + ", review=" + review + ", rejected=" + rejected);
+
+            Stats s = new Stats();
+            s.setAccepted(accepted);
+            s.setReview(review);
+            s.setRejected(rejected);
+            s.setTotal(accepted + review + rejected);
+
+            return ResponseEntity.ok(s);
+        } catch (Exception e) {
+            System.err.println("Error getting stats for sessionId " + sessionId + ": " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/dashboard/overview")
@@ -280,6 +306,122 @@ public class AdminController {
         overview.setRecentAttendances(attendanceRepository.countRecentAttendances(since));
 
         return overview;
+    }
+
+    @GetMapping("/stats/time-range")
+    public ResponseEntity<TimeRangeStats> getTimeRangeStats(
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            @RequestParam(required = false) String maLop) {
+        try {
+            Instant start = Instant.parse(startDate + "T00:00:00Z");
+            Instant end = Instant.parse(endDate + "T23:59:59Z");
+
+            TimeRangeStats stats = new TimeRangeStats();
+            stats.setStartDate(startDate);
+            stats.setEndDate(endDate);
+            stats.setMaLop(maLop);
+
+            // Get all attendances in time range
+            List<AttendanceEntity> attendances;
+            if (maLop != null && !maLop.trim().isEmpty()) {
+                // Filter by class - need to join with sessions
+                attendances = attendanceRepository.findByDateRangeAndClass(start, end, maLop.trim());
+            } else {
+                attendances = attendanceRepository.findByDateRange(start, end);
+            }
+
+            // Calculate stats
+            long totalAttendances = attendances.size();
+            long acceptedCount = attendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.ACCEPTED ? 1 : 0).sum();
+            long reviewCount = attendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.REVIEW ? 1 : 0).sum();
+            long rejectedCount = attendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.REJECTED ? 1 : 0).sum();
+
+            stats.setTotalAttendances(totalAttendances);
+            stats.setAcceptedCount(acceptedCount);
+            stats.setReviewCount(reviewCount);
+            stats.setRejectedCount(rejectedCount);
+
+            // Get unique sessions count
+            long uniqueSessions = attendances.stream().map(AttendanceEntity::getSessionId).distinct().count();
+            stats.setUniqueSessions(uniqueSessions);
+
+            // Get unique students count
+            long uniqueStudents = attendances.stream().map(AttendanceEntity::getMssv).distinct().count();
+            stats.setUniqueStudents(uniqueStudents);
+
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            System.err.println("Error getting time range stats: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/stats/class")
+    public ResponseEntity<List<ClassDetailStats>> getClassStats(@RequestParam(required = false) String maLop) {
+        try {
+            List<ClassDetailStats> result = new ArrayList<>();
+
+            if (maLop != null && !maLop.trim().isEmpty()) {
+                // Get stats for specific class
+                ClassDetailStats stats = getStatsForClass(maLop.trim());
+                if (stats != null) {
+                    result.add(stats);
+                }
+            } else {
+                // Get stats for all classes
+                List<String> classes = sessionRepository.findDistinctMaLop();
+                for (String className : classes) {
+                    ClassDetailStats stats = getStatsForClass(className);
+                    if (stats != null) {
+                        result.add(stats);
+                    }
+                }
+            }
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            System.err.println("Error getting class stats: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    private ClassDetailStats getStatsForClass(String maLop) {
+        try {
+            ClassDetailStats stats = new ClassDetailStats();
+            stats.setMaLop(maLop);
+
+            // Basic counts
+            stats.setSessionCount(sessionRepository.countByMaLop(maLop));
+            stats.setStudentCount(studentRepository.countByMaLop(maLop));
+
+            // Attendance stats for this class
+            List<AttendanceEntity> attendances = attendanceRepository.findByClassMaLop(maLop);
+            stats.setTotalAttendances(attendances.size());
+
+            long acceptedCount = attendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.ACCEPTED ? 1 : 0).sum();
+            long reviewCount = attendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.REVIEW ? 1 : 0).sum();
+            long rejectedCount = attendances.stream().mapToLong(a -> a.getStatus() == AttendanceEntity.Status.REJECTED ? 1 : 0).sum();
+
+            stats.setAcceptedCount(acceptedCount);
+            stats.setReviewCount(reviewCount);
+            stats.setRejectedCount(rejectedCount);
+
+            // Calculate attendance rate
+            if (stats.getStudentCount() > 0 && stats.getSessionCount() > 0) {
+                double maxPossibleAttendances = stats.getStudentCount() * stats.getSessionCount();
+                stats.setAttendanceRate((double) acceptedCount / maxPossibleAttendances * 100);
+            } else {
+                stats.setAttendanceRate(0.0);
+            }
+
+            return stats;
+        } catch (Exception e) {
+            System.err.println("Error getting stats for class " + maLop + ": " + e.getMessage());
+            return null;
+        }
     }
 
     @GetMapping("/dashboard/classes")
@@ -406,6 +548,154 @@ public class AdminController {
                 .body(bytes);
     }
 
+    // Export detailed report with student names
+    @GetMapping(value = "/export/detailed/{sessionId}")
+    public ResponseEntity<byte[]> exportDetailed(@PathVariable String sessionId) {
+        try {
+            var page = attendanceRepository.findBySessionId(sessionId, PageRequest.of(0, Integer.MAX_VALUE));
+            var session = sessionRepository.findById(sessionId);
+
+            if (session.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Get all students in the class
+            var students = studentRepository.findByMaLopContainingIgnoreCase(session.get().getMaLop(), PageRequest.of(0, Integer.MAX_VALUE));
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("MSSV,Họ tên,Trạng thái điểm danh,Thời gian điểm danh,Độ tin cậy,Face Label,Ghi chú\n");
+
+            // Create a map of attendance by MSSV
+            var attendanceMap = page.getContent().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    AttendanceEntity::getMssv,
+                    a -> a,
+                    (existing, replacement) -> existing // Keep first occurrence
+                ));
+
+            // Export all students with their attendance status
+            students.getContent().forEach(student -> {
+                AttendanceEntity attendance = attendanceMap.get(student.getMssv());
+                sb.append(student.getMssv()).append(',')
+                  .append(student.getHoTen()).append(',');
+
+                if (attendance != null) {
+                    sb.append(attendance.getStatus() != null ? getStatusText(attendance.getStatus().name()) : "Chưa điểm danh").append(',')
+                      .append(attendance.getCapturedAt() != null ? attendance.getCapturedAt() : "").append(',')
+                      .append(attendance.getFaceConfidence() != null ? attendance.getFaceConfidence() : "").append(',')
+                      .append(attendance.getFaceLabel() != null ? attendance.getFaceLabel() : "").append(',')
+                      .append(attendance.getMeta() != null ? attendance.getMeta() : "");
+                } else {
+                    sb.append("Vắng mặt,,,,,");
+                }
+                sb.append("\n");
+            });
+
+            byte[] bytes = sb.toString().getBytes(StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=detailed-attendance-" + sessionId + ".csv")
+                    .contentType(MediaType.parseMediaType("text/csv"))
+                    .body(bytes);
+        } catch (Exception e) {
+            System.err.println("Error exporting detailed report: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // Export class summary report
+    @GetMapping(value = "/export/class-summary")
+    public ResponseEntity<byte[]> exportClassSummary(@RequestParam(required = false) String maLop) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Mã lớp,Số buổi học,Số sinh viên,Tổng lượt điểm danh,Thành công,Cần xem xét,Thất bại,Tỷ lệ điểm danh (%)\n");
+
+            List<String> classes;
+            if (maLop != null && !maLop.trim().isEmpty()) {
+                classes = List.of(maLop.trim());
+            } else {
+                classes = sessionRepository.findDistinctMaLop();
+            }
+
+            for (String className : classes) {
+                ClassDetailStats stats = getStatsForClass(className);
+                if (stats != null) {
+                    sb.append(stats.getMaLop()).append(',')
+                      .append(stats.getSessionCount()).append(',')
+                      .append(stats.getStudentCount()).append(',')
+                      .append(stats.getTotalAttendances()).append(',')
+                      .append(stats.getAcceptedCount()).append(',')
+                      .append(stats.getReviewCount()).append(',')
+                      .append(stats.getRejectedCount()).append(',')
+                      .append(String.format("%.2f", stats.getAttendanceRate()))
+                      .append("\n");
+                }
+            }
+
+            byte[] bytes = sb.toString().getBytes(StandardCharsets.UTF_8);
+            String filename = maLop != null ? "class-summary-" + maLop + ".csv" : "all-classes-summary.csv";
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=" + filename)
+                    .contentType(MediaType.parseMediaType("text/csv"))
+                    .body(bytes);
+        } catch (Exception e) {
+            System.err.println("Error exporting class summary: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    private String getStatusText(String status) {
+        switch (status) {
+            case "ACCEPTED": return "Thành công";
+            case "REVIEW": return "Cần xem xét";
+            case "REJECTED": return "Thất bại";
+            default: return status;
+        }
+    }
+
+    // Real-time stats endpoint
+    @GetMapping("/stats/realtime/{sessionId}")
+    public ResponseEntity<RealtimeStats> getRealtimeStats(@PathVariable String sessionId) {
+        try {
+            // Get basic stats
+            ResponseEntity<Stats> statsResponse = stats(sessionId);
+            if (!statsResponse.getStatusCode().is2xxSuccessful() || statsResponse.getBody() == null) {
+                return ResponseEntity.notFound().build();
+            }
+            Stats basicStats = statsResponse.getBody();
+
+            // Get recent activity (last 5 minutes)
+            Instant fiveMinutesAgo = Instant.now().minusSeconds(5 * 60);
+            List<AttendanceEntity> recentAttendances = attendanceRepository.findBySessionIdAndDateRange(
+                sessionId, fiveMinutesAgo, Instant.now()
+            );
+
+            RealtimeStats realtimeStats = new RealtimeStats();
+            realtimeStats.setSessionId(sessionId);
+            realtimeStats.setTotal(basicStats.getTotal());
+            realtimeStats.setAccepted(basicStats.getAccepted());
+            realtimeStats.setReview(basicStats.getReview());
+            realtimeStats.setRejected(basicStats.getRejected());
+            realtimeStats.setRecentCount(recentAttendances.size());
+            realtimeStats.setLastUpdated(Instant.now().toString());
+
+            // Get latest attendance
+            if (!recentAttendances.isEmpty()) {
+                AttendanceEntity latest = recentAttendances.get(0);
+                realtimeStats.setLatestMssv(latest.getMssv());
+                realtimeStats.setLatestStatus(latest.getStatus().name());
+                realtimeStats.setLatestTime(latest.getCapturedAt().toString());
+            }
+
+            return ResponseEntity.ok(realtimeStats);
+        } catch (Exception e) {
+            System.err.println("Error getting realtime stats: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @Data
     public static class CreateSession {
         @NotBlank(message = "Mã lớp không được để trống")
@@ -477,6 +767,45 @@ public class AdminController {
     public static class UpdateAttendance {
         private String status;
         private String meta;
+    }
+
+    @Data
+    public static class TimeRangeStats {
+        private String startDate;
+        private String endDate;
+        private String maLop;
+        private long totalAttendances;
+        private long acceptedCount;
+        private long reviewCount;
+        private long rejectedCount;
+        private long uniqueSessions;
+        private long uniqueStudents;
+    }
+
+    @Data
+    public static class ClassDetailStats {
+        private String maLop;
+        private long sessionCount;
+        private long studentCount;
+        private long totalAttendances;
+        private long acceptedCount;
+        private long reviewCount;
+        private long rejectedCount;
+        private double attendanceRate;
+    }
+
+    @Data
+    public static class RealtimeStats {
+        private String sessionId;
+        private long total;
+        private long accepted;
+        private long review;
+        private long rejected;
+        private long recentCount;
+        private String lastUpdated;
+        private String latestMssv;
+        private String latestStatus;
+        private String latestTime;
     }
 
     @Data

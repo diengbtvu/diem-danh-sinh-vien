@@ -36,4 +36,13 @@ public interface AttendanceRepository extends JpaRepository<AttendanceEntity, UU
 
     @Query("SELECT a.status, COUNT(a) FROM AttendanceEntity a WHERE a.sessionId = :sessionId GROUP BY a.status")
     List<Object[]> getStatusStatsBySessionId(@Param("sessionId") String sessionId);
+
+    @Query("SELECT a FROM AttendanceEntity a WHERE a.capturedAt BETWEEN :start AND :end ORDER BY a.capturedAt DESC")
+    List<AttendanceEntity> findByDateRange(@Param("start") Instant start, @Param("end") Instant end);
+
+    @Query("SELECT a FROM AttendanceEntity a JOIN SessionEntity s ON a.sessionId = s.sessionId WHERE a.capturedAt BETWEEN :start AND :end AND s.maLop = :maLop ORDER BY a.capturedAt DESC")
+    List<AttendanceEntity> findByDateRangeAndClass(@Param("start") Instant start, @Param("end") Instant end, @Param("maLop") String maLop);
+
+    @Query("SELECT a FROM AttendanceEntity a JOIN SessionEntity s ON a.sessionId = s.sessionId WHERE s.maLop = :maLop ORDER BY a.capturedAt DESC")
+    List<AttendanceEntity> findByClassMaLop(@Param("maLop") String maLop);
 }

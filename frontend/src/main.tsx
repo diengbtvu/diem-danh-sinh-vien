@@ -6,6 +6,7 @@ import AdminPage from './pages/AdminPage'
 import CreateSessionPage from './pages/CreateSessionPage'
 import AttendanceDetailPage from './pages/AttendanceDetailPage'
 import SessionDetailPage from './pages/SessionDetailPage'
+import TestPage from './pages/TestPage'
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
 
 function App() {
@@ -209,6 +210,7 @@ function App() {
           <Route path="/create" element={<CreateSessionPage />} />
           <Route path="/attendance-detail" element={<AttendanceDetailPage />} />
           <Route path="/session-detail" element={<SessionDetailPage />} />
+          <Route path="/test" element={<TestPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

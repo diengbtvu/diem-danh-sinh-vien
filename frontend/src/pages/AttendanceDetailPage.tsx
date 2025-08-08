@@ -6,11 +6,13 @@ import {
 } from '@mui/material'
 import {
   ArrowBack, Edit, Delete, Refresh, CheckCircle, Warning, Error,
-  Person, Schedule, QrCode, Assessment
+  Person, Schedule, QrCode, Assessment, Download, FileDownload
 } from '@mui/icons-material'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import LoadingButton from '../components/LoadingButton'
 import DataTable from '../components/DataTable'
+import StatusDistributionCard from '../components/StatusDistributionCard'
+import RealtimeStatsCard from '../components/RealtimeStatsCard'
 
 type Attendance = {
   id: string
@@ -103,10 +105,15 @@ export default function AttendanceDetailPage() {
   const fetchStats = useCallback(async () => {
     if (!sessionId) return
     try {
+      console.log('Fetching stats for sessionId:', sessionId)
       const response = await fetch(`/api/admin/stats/${sessionId}`)
+      console.log('Stats response status:', response.status)
       if (response.ok) {
         const data = await response.json()
+        console.log('Stats data received:', data)
         setStats(data)
+      } else {
+        console.error('Failed to fetch stats:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -128,10 +135,18 @@ export default function AttendanceDetailPage() {
 
   useEffect(() => {
     if (sessionId) {
+      console.log('useEffect: sessionId found, fetching data for:', sessionId)
       fetchSession()
       fetchStats()
+    } else {
+      console.log('useEffect: no sessionId found')
     }
   }, [sessionId, fetchSession, fetchStats])
+
+  // Debug log for stats changes
+  useEffect(() => {
+    console.log('Stats updated:', stats)
+  }, [stats])
 
   useEffect(() => {
     fetchAttendances()
@@ -186,6 +201,31 @@ export default function AttendanceDetailPage() {
     return student ? student.hoTen : 'Không tìm thấy'
   }
 
+  const downloadReport = async (type: 'basic' | 'detailed') => {
+    if (!sessionId) return
+
+    try {
+      const endpoint = type === 'detailed'
+        ? `/api/admin/export/detailed/${sessionId}`
+        : `/api/admin/export/${sessionId}`
+
+      const response = await fetch(endpoint)
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `attendance-${type}-${sessionId}.csv`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
+    } catch (error) {
+      console.error('Error downloading report:', error)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACCEPTED': return 'success'
@@ -220,6 +260,8 @@ export default function AttendanceDetailPage() {
       </Container>
     )
   }
+
+  console.log('Rendering AttendanceDetailPage with sessionId:', sessionId, 'stats:', stats)
 
   return (
     <>
@@ -298,6 +340,39 @@ export default function AttendanceDetailPage() {
           </Paper>
         )}
 
+        {/* Statistics */}
+        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Thống kê điểm danh
+          </Typography>
+          {stats ? (
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <StatusDistributionCard
+                  stats={stats}
+                  sessionId={sessionId}
+                  onViewDetails={(status) => {
+                    if (status !== 'all') {
+                      setStatusFilter(status.toUpperCase())
+                    }
+                  }}
+                  showActions={true}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <RealtimeStatsCard
+                  sessionId={sessionId || ''}
+                  refreshInterval={30000}
+                />
+              </Grid>
+            </Grid>
+          ) : (
+            <Typography variant="body1" color="text.secondary">
+              {sessionId ? 'Đang tải thống kê...' : 'Không có session ID'}
+            </Typography>
+          )}
+        </Paper>
+
         {/* Filters */}
         <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
@@ -337,6 +412,26 @@ export default function AttendanceDetailPage() {
               >
                 Xóa bộ lọc
               </Button>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="contained"
+                  startIcon={<Download />}
+                  onClick={() => downloadReport('basic')}
+                  size="small"
+                >
+                  Xuất CSV
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<FileDownload />}
+                  onClick={() => downloadReport('detailed')}
+                  size="small"
+                >
+                  Báo cáo chi tiết
+                </Button>
+              </Stack>
             </Grid>
           </Grid>
         </Paper>
