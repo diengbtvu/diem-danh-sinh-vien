@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/visitor-stats")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:8000", allowCredentials = "true")
 public class VisitorStatsController {
     
     @Autowired
