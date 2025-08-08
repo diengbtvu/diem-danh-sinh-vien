@@ -21,6 +21,9 @@ public class AttendanceEntity {
     @Column(name = "qr_code_value", length = 512)
     private String qrCodeValue;
 
+    @Column(name = "session_id", length = 64)
+    private String sessionId;
+
     @Column(name = "mssv", length = 32)
     private String mssv;
 

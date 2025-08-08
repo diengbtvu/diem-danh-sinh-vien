@@ -1,5 +1,6 @@
 package com.diemdanh.service;
 
+import com.diemdanh.config.AttendanceConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -12,11 +13,17 @@ import java.time.Instant;
 
 @Service
 public class QrTokenService {
+    private final AttendanceConfig attendanceConfig;
+
     @Value("${app.hmacSecret}")
     private String hmacSecret;
 
     @Value("${app.rotateSeconds:20}")
     private int rotateSeconds;
+
+    public QrTokenService(AttendanceConfig attendanceConfig) {
+        this.attendanceConfig = attendanceConfig;
+    }
 
     public String sign(String data) {
         try {
@@ -53,7 +60,34 @@ public class QrTokenService {
 
     public boolean isStepValid(long sessionStartEpochSec, long nowEpochSec, long tokenStep) {
         long currentStep = Math.floorDiv(nowEpochSec - sessionStartEpochSec, rotateSeconds);
-        return Math.abs(currentStep - tokenStep) <= 1; // leeway 1 step
+        return Math.abs(currentStep - tokenStep) <= attendanceConfig.getQrStepTolerance();
+    }
+
+    public boolean validateRotatingToken(String rotatingToken, String sessionId, long sessionStartEpochSec) {
+        if (rotatingToken == null || !rotatingToken.startsWith("STEP-" + sessionId + ".")) {
+            return false;
+        }
+
+        // Extract step from token
+        try {
+            String[] parts = rotatingToken.split("\\.");
+            if (parts.length != 3) return false;
+
+            long tokenStep = Long.parseLong(parts[1]);
+            String payload = parts[0] + "." + parts[1];
+            String signature = parts[2];
+
+            // Validate signature
+            if (!signature.equalsIgnoreCase(sign(payload))) {
+                return false;
+            }
+
+            // Validate step timing
+            long nowEpochSec = System.currentTimeMillis() / 1000;
+            return isStepValid(sessionStartEpochSec, nowEpochSec, tokenStep);
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public int getRotateSeconds() {

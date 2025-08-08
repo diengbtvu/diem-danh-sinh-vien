@@ -1,25 +1,66 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/attendance
-    username: postgres
-    password: postgres
+    url: jdbc:mysql://14.225.220.60:3306/attendance?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: phuocthuy
+    password: PhuocThuy@2A054C17@123123321@1111
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
 server:
-  port: 8080
+  port: 8081
 
 app:
-  faceApiUrl: http://localhost:5001
+  faceApiUrl: http://14.225.220.60:5001
   rotateSeconds: 20
   hmacSecret: change-me
-  frontendHost: http://localhost:5173
+  frontendHost: http://14.225.220.60:8000
+
+# Attendance system configuration
+attendance:
+  # QR B activation window duration in seconds
+  qr-b-window-seconds: 30
+
+  # QR token rotation interval in seconds
+  qr-rotate-seconds: 30
+
+  # QR token step tolerance (±N steps are valid)
+  qr-step-tolerance: 1
+
+  # Session token validity duration in hours
+  session-token-validity-hours: 24
+
+  # Maximum image size in MB
+  max-image-size-mb: 5
+
+  # Frontend URL template
+  frontend-url-template: "http://14.225.220.60:8000/attend?session={sessionToken}"
 
 logging:
   level:
     root: INFO
     org.springframework.web: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:mysql://localhost:3306/attendance?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    open-in-view: false

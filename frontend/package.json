@@ -6,17 +6,26 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "serve": "vite preview --port 8000 --host 0.0.0.0"
   },
   "dependencies": {
+    "@emotion/react": "11.11.4",
+    "@emotion/styled": "11.11.5",
+    "@mui/icons-material": "5.15.20",
+    "@mui/material": "5.15.20",
+    "@stomp/stompjs": "^7.1.1",
+    "jsqr": "1.4.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.26.1"
+    "react-router-dom": "6.26.1",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "4.3.1",
+    "@types/node": "^24.2.0",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
+    "@vitejs/plugin-react": "4.3.1",
     "typescript": "5.5.4",
     "vite": "5.4.2"
   }

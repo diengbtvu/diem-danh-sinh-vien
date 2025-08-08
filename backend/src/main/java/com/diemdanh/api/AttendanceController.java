@@ -8,6 +8,7 @@ import com.diemdanh.repo.StudentRepository;
 import com.diemdanh.service.FaceApiClient;
 import com.diemdanh.service.QrTokenService;
 import com.diemdanh.service.SessionService;
+import com.diemdanh.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +28,7 @@ public class AttendanceController {
     private final FaceApiClient faceApiClient;
     private final StudentRepository studentRepository;
     private final AttendanceRepository attendanceRepository;
+    private final NotificationService notificationService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public AttendanceSubmitResponse submit(
@@ -71,11 +73,31 @@ public class AttendanceController {
 
         AttendanceEntity record = new AttendanceEntity();
         record.setQrCodeValue("session=" + sessionToken + "&rot=" + rotatingToken);
+        record.setSessionId(sessionId);
         record.setMssv(mssv);
         record.setFaceLabel(label);
         record.setFaceConfidence(confidence);
         record.setStatus(status);
-        attendanceRepository.save(record);
+        AttendanceEntity saved = attendanceRepository.save(record);
+
+        // Send real-time notification
+        try {
+            NotificationService.AttendanceNotification notification = new NotificationService.AttendanceNotification(
+                "NEW_ATTENDANCE",
+                sessionId,
+                mssv,
+                student != null ? student.getHoTen() : "Unknown",
+                status.name()
+            );
+            notificationService.sendAttendanceUpdate(sessionId, notification);
+            notificationService.sendGlobalUpdate(new NotificationService.GlobalNotification(
+                "ATTENDANCE_UPDATE",
+                "New attendance recorded for session " + sessionId
+            ));
+        } catch (Exception e) {
+            // Log error but don't fail the request
+            System.err.println("Failed to send notification: " + e.getMessage());
+        }
 
         return AttendanceSubmitResponse.builder()
                 .status(status.name())
@@ -90,7 +112,7 @@ public class AttendanceController {
     public Page<AttendanceEntity> list(@RequestParam("sessionId") String sessionId,
                                        @RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "20") int size) {
-        return attendanceRepository.findByQrCodeValueContaining(sessionId, PageRequest.of(page, size));
+        return attendanceRepository.findBySessionId(sessionId, PageRequest.of(page, size));
     }
 
     private String parseSessionId(String token) {
