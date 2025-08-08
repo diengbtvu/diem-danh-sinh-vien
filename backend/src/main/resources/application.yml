@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/attendance
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+server:
+  port: 8080
+
+app:
+  faceApiUrl: http://localhost:5001
+  rotateSeconds: 20
+  hmacSecret: change-me
+  frontendHost: http://localhost:5173
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
