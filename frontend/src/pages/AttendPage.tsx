@@ -238,10 +238,37 @@ export default function AttendPage() {
     setError(null)
     try {
       const blob = await dataUrlToBlob(previewUrl)
+      
+      // Step 1: Call Face API directly from frontend
+      console.log('Calling Face Recognition API...')
+      const faceApiResponse = await fetch('http://apimaycogiau.zettix.net/api/v1/face-recognition/predict/file', {
+        method: 'POST',
+        body: (() => {
+          const formData = new FormData()
+          formData.append('image', blob, 'capture.jpg')
+          return formData
+        })()
+      })
+      
+      let faceResult = null
+      if (faceApiResponse.ok) {
+        faceResult = await faceApiResponse.json()
+        console.log('Face API response:', faceResult)
+      } else {
+        console.warn('Face API failed:', await faceApiResponse.text())
+      }
+      
+      // Step 2: Send attendance data with face recognition result to backend
       const form = new FormData()
       form.append('sessionToken', sessionToken)
       form.append('rotatingToken', rotatingToken)
       form.append('image', blob, 'capture.jpg')
+      
+      // Include face recognition result if available
+      if (faceResult) {
+        form.append('faceApiResult', JSON.stringify(faceResult))
+      }
+      
       const res = await fetch('/api/attendances', {
         method: 'POST',
         body: form,

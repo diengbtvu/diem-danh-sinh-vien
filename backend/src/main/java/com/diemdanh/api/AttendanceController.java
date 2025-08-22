@@ -5,7 +5,7 @@ import com.diemdanh.domain.AttendanceEntity;
 import com.diemdanh.domain.StudentEntity;
 import com.diemdanh.repo.AttendanceRepository;
 import com.diemdanh.repo.StudentRepository;
-import com.diemdanh.service.FaceApiClient;
+// import com.diemdanh.service.FaceApiClient; // No longer needed
 import com.diemdanh.service.QrTokenService;
 import com.diemdanh.service.SessionService;
 import com.diemdanh.service.NotificationService;
@@ -34,7 +34,7 @@ import java.time.Instant;
 public class AttendanceController {
     private final QrTokenService qrTokenService;
     private final SessionService sessionService;
-    private final FaceApiClient faceApiClient;
+    // private final FaceApiClient faceApiClient; // No longer needed - frontend calls Face API directly
     private final StudentRepository studentRepository;
     private final AttendanceRepository attendanceRepository;
     private final NotificationService notificationService;
@@ -43,7 +43,8 @@ public class AttendanceController {
     public AttendanceSubmitResponse submit(
             @RequestPart("sessionToken") String sessionToken,
             @RequestPart("rotatingToken") String rotatingToken,
-            @RequestPart("image") MultipartFile image
+            @RequestPart("image") MultipartFile image,
+            @RequestPart(value = "faceApiResult", required = false) String faceApiResultJson
     ) throws Exception {
         if (!qrTokenService.validateToken(sessionToken, "SESSION") || !qrTokenService.validateToken(rotatingToken, "STEP")) {
             throw new IllegalArgumentException("Invalid token signature");
@@ -63,14 +64,40 @@ public class AttendanceController {
         }
 
         byte[] bytes = image.getBytes();
-        log.info("Processing attendance submission: sessionId={}, imageSize={} bytes, fileName={}", 
-            sessionId, bytes.length, image.getOriginalFilename());
+        log.info("Processing attendance submission: sessionId={}, imageSize={} bytes, fileName={}, hasFaceApiResult={}", 
+            sessionId, bytes.length, image.getOriginalFilename(), faceApiResultJson != null);
         
-        var faceResp = faceApiClient.recognize(bytes, image.getOriginalFilename() != null ? image.getOriginalFilename() : "image.jpg").block();
-        String label = faceResp != null ? faceResp.getLabel() : null;
-        Double confidence = faceResp != null ? faceResp.getConfidence() : null;
+        String label = null;
+        Double confidence = null;
         
-        log.info("Face recognition result: label={}, confidence={}", label, confidence);
+        // Process face recognition result from frontend
+        if (faceApiResultJson != null && !faceApiResultJson.trim().isEmpty()) {
+            try {
+                log.info("Processing face API result from frontend: {}", faceApiResultJson);
+                // Parse the JSON result from frontend
+                var objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                var faceApiResult = objectMapper.readTree(faceApiResultJson);
+                
+                if (faceApiResult.has("success") && faceApiResult.get("success").asBoolean() 
+                    && faceApiResult.has("detections") && faceApiResult.get("detections").isArray() 
+                    && faceApiResult.get("detections").size() > 0) {
+                    
+                    var firstDetection = faceApiResult.get("detections").get(0);
+                    label = firstDetection.has("class") ? firstDetection.get("class").asText() : null;
+                    confidence = firstDetection.has("confidence") ? firstDetection.get("confidence").asDouble() : null;
+                    
+                    log.info("Parsed face recognition result from frontend: label={}, confidence={}", label, confidence);
+                } else {
+                    log.warn("Face API result from frontend indicates no face detected or unsuccessful");
+                }
+            } catch (Exception e) {
+                log.error("Failed to parse face API result from frontend: {}", e.getMessage(), e);
+            }
+        } else {
+            log.info("No face API result provided from frontend, will set status to REVIEW");
+        }
+        
+        log.info("Final face recognition result: label={}, confidence={}", label, confidence);
         
         String mssv = parseMssv(label);
         StudentEntity student = mssv != null ? studentRepository.findById(mssv).orElse(null) : null;
