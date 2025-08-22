@@ -13,10 +13,10 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
 server:
-  port: 8082
+  port: 8080
 
 app:
-  faceApiUrl: http://localhost:5001
+  faceApiUrl: http://apimaycogiau.zettix.net
   rotateSeconds: 20
   hmacSecret: change-me
   frontendHost: https://zettix.net
@@ -58,7 +58,7 @@ spring:
     password: 123456
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     properties:
       hibernate:
         format_sql: true
