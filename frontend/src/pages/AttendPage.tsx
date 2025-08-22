@@ -240,7 +240,7 @@ export default function AttendPage() {
                   onCapture={handleCapture}
                   onCameraReady={handleCameraReady}
                   onQRDetected={handleValidatedQR}
-                  enableQRScanning={cameraReady && !rotatingToken}
+                  enableQRScanning={!!(cameraReady && !rotatingToken)}
                   enableFaceDetection={true}
                   enableQualityAssessment={true}
                   enableLivenessCheck={false}

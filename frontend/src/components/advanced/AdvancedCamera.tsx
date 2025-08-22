@@ -4,6 +4,7 @@ import { CameraAlt, FlipCameraAndroid, Person, CheckCircle, Warning, Error as Er
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingButton from '../LoadingButton';
 import { FaceDetectionOverlay } from './FaceDetectionOverlay';
+import QRScanner from '../QRScanner';
 import { QualityAssessment } from './QualityAssessment';
 import { LivenessChecker } from './LivenessChecker';
 
@@ -331,6 +332,16 @@ export const AdvancedCamera: React.FC<AdvancedCameraProps> = ({
           <LivenessChecker
             videoRef={videoRef}
             onLivenessScore={setLivenessScore}
+          />
+        )}
+
+        {/* QR Scanner Overlay */}
+        {enableQRScanning && isReady && (
+          <QRScanner
+            videoRef={videoRef}
+            isActive={enableQRScanning}
+            onQRDetected={(qr) => onQRDetected?.(qr)}
+            onError={(e) => setError(e)}
           />
         )}
 
