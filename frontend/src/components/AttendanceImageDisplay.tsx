@@ -13,7 +13,8 @@ import {
 import { 
   Visibility, 
   Image as ImageIcon, 
-  Close 
+  Close,
+  Download
 } from '@mui/icons-material'
 
 interface AttendanceImageDisplayProps {
@@ -60,15 +61,14 @@ export default function AttendanceImageDisplay({
           sx={{ width: 32, height: 32 }}
           alt={`Ảnh điểm danh ${mssv}`}
         />
-        <Tooltip title="Xem ảnh">
-          <IconButton 
-            size="small" 
-            onClick={() => setOpen(true)}
-            sx={{ color: 'primary.main' }}
-          >
-            <Visibility fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <IconButton 
+          size="small" 
+          onClick={() => setOpen(true)}
+          sx={{ color: 'primary.main' }}
+          title="Xem ảnh"
+        >
+          <Visibility fontSize="small" />
+        </IconButton>
       </Box>
 
       <Dialog 
