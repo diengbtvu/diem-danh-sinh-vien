@@ -29,26 +29,29 @@ public class FaceApiClient {
     public Mono<RecognizeResponse> recognize(byte[] imageBytes, String filename) {
         log.info("Starting face recognition API call for file: {}, size: {} bytes", filename, imageBytes.length);
         
+        // Try using simpler BodyInserters approach like the working curl example
         ByteArrayResource resource = new ByteArrayResource(imageBytes) {
             @Override
-            public String getFilename() { return filename; }
+            public String getFilename() { 
+                return filename != null ? filename : "image.jpg"; 
+            }
         };
 
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.part("image", resource)
-                .filename(filename != null ? filename : "image.jpg")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM);
-
+        log.info("Sending request to Face API: /api/v1/face-recognition/predict/file with filename={}", resource.getFilename());
+        
         // Call the real API: /api/v1/face-recognition/predict/file
+        // Using the simpler approach that matches curl behavior
         return webClient.post()
                 .uri("/api/v1/face-recognition/predict/file")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(builder.build()))
+                .body(BodyInserters.fromMultipartData("image", resource))
                 .retrieve()
                 .bodyToMono(ExternalResponse.class)
                 .timeout(Duration.ofSeconds(15))
                 .doOnNext(externalResponse -> {
-                    log.info("Face API response received: totalFaces={}, detections={}", 
+                    log.info("Face API response received successfully!");
+                    log.info("Response: success={}, totalFaces={}, detections={}", 
+                        externalResponse != null ? externalResponse.getSuccess() : null,
                         externalResponse != null ? externalResponse.getTotalFaces() : null,
                         externalResponse != null && externalResponse.getDetections() != null ? 
                             externalResponse.getDetections().size() : 0);
@@ -65,6 +68,14 @@ public class FaceApiClient {
                 })
                 .onErrorResume(ex -> {
                     log.error("Face API call failed: {}", ex.getMessage(), ex);
+                    if (ex instanceof org.springframework.web.reactive.function.client.WebClientResponseException) {
+                        org.springframework.web.reactive.function.client.WebClientResponseException webEx = 
+                            (org.springframework.web.reactive.function.client.WebClientResponseException) ex;
+                        log.error("HTTP Status: {}, Response Body: {}", 
+                            webEx.getStatusCode(), webEx.getResponseBodyAsString());
+                        log.error("Request Headers would have been: Content-Type: multipart/form-data");
+                        log.error("Request URL: {}/api/v1/face-recognition/predict/file", webClient.toString());
+                    }
                     return Mono.just(new RecognizeResponse());
                 });
     }
