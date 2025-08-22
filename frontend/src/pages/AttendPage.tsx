@@ -38,6 +38,7 @@ export default function AttendPage() {
   const [cameraReady, setCameraReady] = useState(false)
   const [scanningProgress, setScanningProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
+  const [submitted, setSubmitted] = useState(false)
 
   // Define steps for the attendance process
   const steps = [
@@ -289,8 +290,22 @@ export default function AttendPage() {
       if (!res.ok) throw new Error('Gửi điểm danh thất bại')
       const json = await res.json()
       setResult(json)
+      setSubmitted(true) // Mark as submitted to prevent camera restart
+      
+      // Show alert based on face recognition result
+      if (faceResult && faceResult.success && faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
+        const detection = faceResult.detections[0]
+        const mssv = detection.class?.split('_')[0] // Extract MSSV from "110122050_TranMinhDien"
+        const name = detection.class?.split('_')[1] || 'Không rõ'
+        
+        alert(`✅ Đã nhận dạng được sinh viên!\nMSSV: ${mssv}\nTên: ${name}\nĐộ tin cậy: ${(detection.confidence * 100).toFixed(1)}%`)
+      } else {
+        alert('⚠️ Không nhận dạng được khuôn mặt!\nVui lòng thử lại hoặc liên hệ giáo viên.')
+      }
+      
     } catch (e: any) {
       setError(e.message || 'Có lỗi xảy ra')
+      alert('❌ Lỗi khi gửi điểm danh: ' + (e.message || 'Có lỗi xảy ra'))
     } finally {
       setSubmitting(false)
     }
@@ -345,21 +360,37 @@ export default function AttendPage() {
                   </Fade>
                 )}
 
-                <AdvancedCamera
-                  onCapture={handleCapture}
-                  onCameraReady={handleCameraReady}
-                  onQRDetected={handleValidatedQR}
-                  enableQRScanning={!!(cameraReady && !rotatingToken)}
-                  enableFaceDetection={true}
-                  enableQualityAssessment={true}
-                  enableLivenessCheck={false}
-                  autoCapture={false}
-                  qualityThreshold={0.7}
-                  disabled={submitting}
-                />
+                {!submitted && (
+                  <AdvancedCamera
+                    onCapture={handleCapture}
+                    onCameraReady={handleCameraReady}
+                    onQRDetected={handleValidatedQR}
+                    enableQRScanning={!!(cameraReady && !rotatingToken)}
+                    enableFaceDetection={true}
+                    enableQualityAssessment={true}
+                    enableLivenessCheck={false}
+                    autoCapture={false}
+                    qualityThreshold={0.7}
+                    disabled={submitting}
+                  />
+                )}
+                
+                {submitted && (
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    py: 4,
+                    borderRadius: 2,
+                    backgroundColor: 'success.light',
+                    color: 'success.contrastText'
+                  }}>
+                    <CheckCircle sx={{ fontSize: 48, mb: 2 }} />
+                    <Typography variant="h6">Đã hoàn thành điểm danh!</Typography>
+                    <Typography variant="body2">Cảm ơn bạn đã sử dụng hệ thống.</Typography>
+                  </Box>
+                )}
 
                 {/* QR B Status */}
-                {cameraReady && !rotatingToken && (
+                {!submitted && cameraReady && !rotatingToken && (
                   <Alert severity="info" sx={{ mt: 2 }}>
                     <Typography variant="body2">
                       Đang tự động kiểm tra QR B từ giảng viên...
@@ -370,7 +401,7 @@ export default function AttendPage() {
                   </Alert>
                 )}
 
-                {rotatingToken && (
+                {!submitted && rotatingToken && (
                   <Alert severity="success" sx={{ mt: 2 }}>
                     <Typography variant="body2">
                       Đã nhận QR B thành công! Bây giờ hãy chụp ảnh khuôn mặt để hoàn tất điểm danh.
@@ -378,7 +409,7 @@ export default function AttendPage() {
                   </Alert>
                 )}
 
-                {previewUrl && (
+                {!submitted && previewUrl && (
                   <Box sx={{ mt: 2 }}>
                     <LoadingButton
                       color="success"
