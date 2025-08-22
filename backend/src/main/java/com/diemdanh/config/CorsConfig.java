@@ -17,6 +17,7 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
                 .allowedOrigins(
+                    "http://diemdanh.zettix.net",
                     "https://zettix.net",
                     "https://www.zettix.net",
                     "http://localhost:5173",
@@ -27,7 +28,7 @@ public class CorsConfig implements WebMvcConfigurer {
                     "http://14.225.220.60:8000"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
+                .allowedHeaders("Authorization", "Content-Type", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers")
                 .allowCredentials(true)
                 .maxAge(3600);
     }
@@ -36,8 +37,9 @@ public class CorsConfig implements WebMvcConfigurer {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow specific origins including production domain
-        configuration.setAllowedOrigins(Arrays.asList(
+        // Use allowedOriginPatterns instead of allowedOrigins for better compatibility
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://diemdanh.zettix.net",
             "https://zettix.net",
             "https://www.zettix.net",
             "http://localhost:5173",
@@ -51,8 +53,15 @@ public class CorsConfig implements WebMvcConfigurer {
         // Allow all HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
 
-        // Allow all headers
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // Allow specific headers
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
+        ));
 
         // Allow credentials
         configuration.setAllowCredentials(true);

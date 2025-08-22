@@ -12,12 +12,12 @@ export default defineConfig({
       cert: fs.readFileSync(process.env.VITE_SSL_CERT as string),
     } : undefined,
     hmr: {
-      port: 8001, // Use different port for HMR
+      port: 8000, // Use same port for HMR to avoid confusion
       host: 'localhost'
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8082',
+        target: process.env.VITE_API_BASE_URL || 'http://diemdanh.zettix.net',
         changeOrigin: true,
         secure: false,
       },

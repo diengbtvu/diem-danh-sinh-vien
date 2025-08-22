@@ -19,7 +19,7 @@ app:
   faceApiUrl: http://apimaycogiau.zettix.net
   rotateSeconds: 20
   hmacSecret: change-me
-  frontendHost: https://zettix.net
+  frontendHost: http://diemdanh.zettix.net
 
 # Attendance system configuration
 attendance:
