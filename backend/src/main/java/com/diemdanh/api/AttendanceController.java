@@ -142,7 +142,22 @@ public class AttendanceController {
 
     private String parseMssv(String label) {
         if (!StringUtils.hasText(label)) return null;
+        // Extract MSSV before first '_' or space (supports both formats)
         int underscore = label.indexOf('_');
-        return underscore > 0 ? label.substring(0, underscore) : null;
+        int space = label.indexOf(' ');
+        int cut = -1;
+        if (underscore >= 0 && space >= 0) {
+            cut = Math.min(underscore, space);
+        } else if (underscore >= 0) {
+            cut = underscore;
+        } else if (space >= 0) {
+            cut = space;
+        }
+        if (cut > 0) {
+            return label.substring(0, cut);
+        }
+        // If no delimiter, return whole label if it looks like an MSSV (digits-only)
+        String trimmed = label.trim();
+        return trimmed.matches("^\\d{6,}$") ? trimmed : null;
     }
 }
