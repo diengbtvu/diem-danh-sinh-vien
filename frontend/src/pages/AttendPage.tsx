@@ -41,7 +41,7 @@ export default function AttendPage() {
   const [submitted, setSubmitted] = useState(false)
 
   // Define steps for the attendance process
-  const steps = [
+  const steps: Array<{label: string; description: string; status: 'completed' | 'active' | 'pending'}> = [
     {
       label: 'Quét QR A',
       description: 'Quét mã QR A từ màn hình lớp học',
@@ -67,7 +67,7 @@ export default function AttendPage() {
       description: 'Gửi thông tin điểm danh',
       status: !previewUrl ? 'pending' : result ? 'completed' : 'active'
     }
-  ] as const
+  ]
 
   useEffect(() => {
     console.log('AttendPage useEffect triggered, sessionToken:', sessionToken)
