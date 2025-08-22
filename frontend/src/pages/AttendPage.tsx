@@ -39,6 +39,7 @@ export default function AttendPage() {
   const [scanningProgress, setScanningProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string>('')
 
   // Define steps for the attendance process
   const steps: Array<{label: string; description: string; status: 'completed' | 'active' | 'pending'}> = [
@@ -245,40 +246,37 @@ export default function AttendPage() {
       let faceResult = null
       
       try {
-        console.log('📡 Calling Face API proxy at /api/face-proxy/predict')
+        setDebugInfo('📡 Đang gọi Face API...')
         const faceApiResponse = await fetch('/api/face-proxy/predict', {
           method: 'POST',
           body: (() => {
             const formData = new FormData()
             formData.append('image', blob, 'capture.jpg')
-            console.log('📤 FormData prepared with image blob:', blob.size, 'bytes')
             return formData
           })()
         })
-        console.log('📡 Face API response status:', faceApiResponse.status, faceApiResponse.statusText)
+        setDebugInfo(`📡 Face API Status: ${faceApiResponse.status} ${faceApiResponse.statusText}`)
         
         if (faceApiResponse.ok) {
           faceResult = await faceApiResponse.json()
-          console.log('Face API response:', faceResult)
           
-          // Log the result based on the format you specified
+          // Update debug info based on the result
           if (faceResult.success) {
             if (faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
               const detection = faceResult.detections[0]
-              console.log(`✅ Face detected: ${detection.class} (confidence: ${detection.confidence})`)
+              setDebugInfo(`✅ Phát hiện: ${detection.class} (${(detection.confidence * 100).toFixed(1)}%)`)
             } else {
-              console.log('⚠️ Face API successful but no faces detected (total_faces=0)')
+              setDebugInfo('⚠️ API thành công nhưng không phát hiện khuôn mặt')
             }
           } else {
-            console.log('❌ Face API returned success=false')
+            setDebugInfo('❌ Face API trả về success=false')
           }
         } else {
           const errorText = await faceApiResponse.text()
-          console.warn('❌ Face API HTTP error:', faceApiResponse.status, errorText)
+          setDebugInfo(`❌ Lỗi HTTP ${faceApiResponse.status}: ${errorText.substring(0, 100)}`)
         }
       } catch (faceApiError) {
-        console.error('❌ Face API call failed:', faceApiError)
-        console.log('Will proceed without face recognition result')
+        setDebugInfo(`❌ Lỗi kết nối: ${faceApiError.message || 'Không thể kết nối Face API'}`)
         // Don't throw here - continue with submission even if Face API fails
       }
       
@@ -422,6 +420,15 @@ export default function AttendPage() {
                   <Alert severity="success" sx={{ mt: 2 }}>
                     <Typography variant="body2">
                       Đã nhận QR B thành công! Bây giờ hãy chụp ảnh khuôn mặt để hoàn tất điểm danh.
+                    </Typography>
+                  </Alert>
+                )}
+
+                {/* Debug Info for Mobile Testing */}
+                {debugInfo && (
+                  <Alert severity="info" sx={{ mt: 2, fontSize: '0.9rem' }}>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                      🔍 DEBUG: {debugInfo}
                     </Typography>
                   </Alert>
                 )}
