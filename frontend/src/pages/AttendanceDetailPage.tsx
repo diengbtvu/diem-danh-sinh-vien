@@ -141,12 +141,22 @@ export default function AttendanceDetailPage() {
   }, [sessionId])
 
   const fetchStudents = useCallback(async () => {
-    if (!session?.maLop) return
     try {
-      const response = await apiRequest(`/api/admin/students?maLop=${session.maLop}&size=1000`)
+      let url = '/api/admin/students?size=1000'
+      if (session?.maLop) {
+        url += `&maLop=${session.maLop}`
+        console.log('fetchStudents: Fetching students for maLop:', session.maLop)
+      } else {
+        console.log('fetchStudents: Fetching all students (no specific maLop)')
+      }
+      
+      const response = await apiRequest(url)
       if (response.ok) {
         const data = await response.json()
+        console.log('fetchStudents: Students data received:', data)
         setStudents(data.content || [])
+      } else {
+        console.error('fetchStudents: Failed to fetch students, status:', response.status)
       }
     } catch (error) {
       console.error('Error fetching students:', error)
@@ -161,7 +171,9 @@ export default function AttendanceDetailPage() {
     } else {
       console.log('useEffect: no sessionId found')
     }
-  }, [sessionId, fetchSession, fetchStats])
+    // Always fetch students (either all or filtered by maLop later)
+    fetchStudents()
+  }, [sessionId, fetchSession, fetchStats, fetchStudents])
 
   // Debug log for stats changes
   useEffect(() => {
@@ -172,6 +184,7 @@ export default function AttendanceDetailPage() {
     fetchAttendances()
   }, [fetchAttendances])
 
+  // Refetch students when session changes to get the right maLop
   useEffect(() => {
     if (session) {
       fetchStudents()
@@ -218,6 +231,9 @@ export default function AttendanceDetailPage() {
 
   const getStudentName = (mssv: string) => {
     const student = students.find(s => s.mssv === mssv)
+    if (!student) {
+      console.log(`getStudentName: Student not found for MSSV ${mssv}. Available students:`, students.length, students.map(s => s.mssv))
+    }
     return student ? student.hoTen : 'Không tìm thấy'
   }
 

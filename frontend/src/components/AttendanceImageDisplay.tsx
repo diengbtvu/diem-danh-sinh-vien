@@ -8,7 +8,8 @@ import {
   DialogActions, 
   Button,
   Typography,
-  Avatar
+  Avatar,
+  Tooltip
 } from '@mui/material'
 import { 
   Visibility, 
@@ -61,14 +62,15 @@ export default function AttendanceImageDisplay({
           sx={{ width: 32, height: 32 }}
           alt={`Ảnh điểm danh ${mssv}`}
         />
-        <IconButton 
-          size="small" 
-          onClick={() => setOpen(true)}
-          sx={{ color: 'primary.main' }}
-          title="Xem ảnh"
-        >
-          <Visibility fontSize="small" />
-        </IconButton>
+        <Tooltip title="Xem ảnh" arrow>
+          <IconButton 
+            size="small" 
+            onClick={() => setOpen(true)}
+            sx={{ color: 'primary.main' }}
+          >
+            <Visibility fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <Dialog 
