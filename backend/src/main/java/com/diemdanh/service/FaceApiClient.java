@@ -29,7 +29,7 @@ public class FaceApiClient {
     public Mono<RecognizeResponse> recognize(byte[] imageBytes, String filename) {
         log.info("Starting face recognition API call for file: {}, size: {} bytes", filename, imageBytes.length);
         
-        // Try using simpler BodyInserters approach like the working curl example
+        // Use MultipartBodyBuilder approach to exactly match curl behavior  
         ByteArrayResource resource = new ByteArrayResource(imageBytes) {
             @Override
             public String getFilename() { 
@@ -37,14 +37,21 @@ public class FaceApiClient {
             }
         };
 
+        // Build multipart data exactly like curl does
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.part("image", resource)
+                .header("Content-Disposition", 
+                    String.format("form-data; name=\"image\"; filename=\"%s\"", resource.getFilename()))
+                .contentType(MediaType.IMAGE_JPEG);
+
         log.info("Sending request to Face API: /api/v1/face-recognition/predict/file with filename={}", resource.getFilename());
+        log.info("Using MultipartBodyBuilder with proper headers to match curl format");
         
         // Call the real API: /api/v1/face-recognition/predict/file
-        // Using the simpler approach that matches curl behavior
         return webClient.post()
                 .uri("/api/v1/face-recognition/predict/file")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData("image", resource))
+                .body(BodyInserters.fromMultipartData(builder.build()))
                 .retrieve()
                 .bodyToMono(ExternalResponse.class)
                 .timeout(Duration.ofSeconds(15))
@@ -74,7 +81,6 @@ public class FaceApiClient {
                         log.error("HTTP Status: {}, Response Body: {}", 
                             webEx.getStatusCode(), webEx.getResponseBodyAsString());
                         log.error("Request Headers would have been: Content-Type: multipart/form-data");
-                        log.error("Request URL: {}/api/v1/face-recognition/predict/file", webClient.toString());
                     }
                     return Mono.just(new RecognizeResponse());
                 });
