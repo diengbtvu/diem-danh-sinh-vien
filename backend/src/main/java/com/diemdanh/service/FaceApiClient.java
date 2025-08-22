@@ -27,6 +27,8 @@ public class FaceApiClient {
     }
 
     public Mono<RecognizeResponse> recognize(byte[] imageBytes, String filename) {
+        log.info("Starting face recognition API call for file: {}, size: {} bytes", filename, imageBytes.length);
+        
         ByteArrayResource resource = new ByteArrayResource(imageBytes) {
             @Override
             public String getFilename() { return filename; }
@@ -45,9 +47,24 @@ public class FaceApiClient {
                 .retrieve()
                 .bodyToMono(ExternalResponse.class)
                 .timeout(Duration.ofSeconds(15))
+                .doOnNext(externalResponse -> {
+                    log.info("Face API response received: totalFaces={}, detections={}", 
+                        externalResponse != null ? externalResponse.getTotalFaces() : null,
+                        externalResponse != null && externalResponse.getDetections() != null ? 
+                            externalResponse.getDetections().size() : 0);
+                    if (externalResponse != null && externalResponse.getDetections() != null && !externalResponse.getDetections().isEmpty()) {
+                        log.info("First detection: className={}, confidence={}", 
+                            externalResponse.getDetections().get(0).getClassName(),
+                            externalResponse.getDetections().get(0).getConfidence());
+                    }
+                })
                 .map(this::mapToRecognizeResponse)
+                .doOnNext(recognizeResponse -> {
+                    log.info("Mapped response: label={}, confidence={}", 
+                        recognizeResponse.getLabel(), recognizeResponse.getConfidence());
+                })
                 .onErrorResume(ex -> {
-                    log.error("Face API call failed: {}", ex.getMessage());
+                    log.error("Face API call failed: {}", ex.getMessage(), ex);
                     return Mono.just(new RecognizeResponse());
                 });
     }

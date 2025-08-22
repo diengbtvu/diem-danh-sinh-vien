@@ -10,6 +10,7 @@ import com.diemdanh.service.QrTokenService;
 import com.diemdanh.service.SessionService;
 import com.diemdanh.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
@@ -22,6 +23,7 @@ import java.time.Instant;
 @RestController
 @RequestMapping("/api/attendances")
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = {
     "https://zettix.net",
     "https://www.zettix.net",
@@ -61,21 +63,33 @@ public class AttendanceController {
         }
 
         byte[] bytes = image.getBytes();
+        log.info("Processing attendance submission: sessionId={}, imageSize={} bytes, fileName={}", 
+            sessionId, bytes.length, image.getOriginalFilename());
+        
         var faceResp = faceApiClient.recognize(bytes, image.getOriginalFilename() != null ? image.getOriginalFilename() : "image.jpg").block();
         String label = faceResp != null ? faceResp.getLabel() : null;
         Double confidence = faceResp != null ? faceResp.getConfidence() : null;
+        
+        log.info("Face recognition result: label={}, confidence={}", label, confidence);
+        
         String mssv = parseMssv(label);
         StudentEntity student = mssv != null ? studentRepository.findById(mssv).orElse(null) : null;
+        
+        log.info("Student lookup: mssv={}, studentFound={}", mssv, student != null);
 
         AttendanceEntity.Status status;
         if (student == null || confidence == null) {
             status = AttendanceEntity.Status.REVIEW;
+            log.info("Setting status to REVIEW - student not found or no confidence score");
         } else if (confidence >= 0.9) {
             status = AttendanceEntity.Status.ACCEPTED;
+            log.info("Setting status to ACCEPTED - high confidence: {}", confidence);
         } else if (confidence >= 0.7) {
             status = AttendanceEntity.Status.REVIEW;
+            log.info("Setting status to REVIEW - medium confidence: {}", confidence);
         } else {
             status = AttendanceEntity.Status.REJECTED;
+            log.info("Setting status to REJECTED - low confidence: {}", confidence);
         }
 
         AttendanceEntity record = new AttendanceEntity();
@@ -86,6 +100,9 @@ public class AttendanceController {
         record.setFaceConfidence(confidence);
         record.setStatus(status);
         AttendanceEntity saved = attendanceRepository.save(record);
+        
+        log.info("Attendance record saved: id={}, sessionId={}, mssv={}, status={}, confidence={}", 
+            saved.getId(), sessionId, mssv, status, confidence);
 
         // Send real-time notification
         try {

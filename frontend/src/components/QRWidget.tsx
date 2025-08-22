@@ -210,20 +210,7 @@ export const QRWidget: React.FC<QRWidgetProps> = ({
             </Typography>
           )}
 
-          {/* Auto refresh countdown */}
-          {countdown !== null && countdown > 0 && (
-            <Chip
-              label={`${countdown}s`}
-              size="small"
-              icon={<Timer />}
-              sx={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)'
-              }}
-            />
-          )}
+
         </Box>
 
         {/* QR Data Display */}
