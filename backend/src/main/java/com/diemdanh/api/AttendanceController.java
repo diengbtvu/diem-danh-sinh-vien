@@ -78,17 +78,24 @@ public class AttendanceController {
                 var objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 var faceApiResult = objectMapper.readTree(faceApiResultJson);
                 
-                if (faceApiResult.has("success") && faceApiResult.get("success").asBoolean() 
-                    && faceApiResult.has("detections") && faceApiResult.get("detections").isArray() 
-                    && faceApiResult.get("detections").size() > 0) {
+                // Check if Face API call was successful and has faces detected
+                if (faceApiResult.has("success") && faceApiResult.get("success").asBoolean()) {
+                    int totalFaces = faceApiResult.has("total_faces") ? faceApiResult.get("total_faces").asInt() : 0;
+                    log.info("Face API success=true, total_faces={}", totalFaces);
                     
-                    var firstDetection = faceApiResult.get("detections").get(0);
-                    label = firstDetection.has("class") ? firstDetection.get("class").asText() : null;
-                    confidence = firstDetection.has("confidence") ? firstDetection.get("confidence").asDouble() : null;
-                    
-                    log.info("Parsed face recognition result from frontend: label={}, confidence={}", label, confidence);
+                    if (totalFaces > 0 && faceApiResult.has("detections") && faceApiResult.get("detections").isArray() 
+                        && faceApiResult.get("detections").size() > 0) {
+                        
+                        var firstDetection = faceApiResult.get("detections").get(0);
+                        label = firstDetection.has("class") ? firstDetection.get("class").asText() : null;
+                        confidence = firstDetection.has("confidence") ? firstDetection.get("confidence").asDouble() : null;
+                        
+                        log.info("Face detected - label={}, confidence={}", label, confidence);
+                    } else {
+                        log.info("Face API returned success but no faces detected (total_faces=0 or empty detections)");
+                    }
                 } else {
-                    log.warn("Face API result from frontend indicates no face detected or unsuccessful");
+                    log.warn("Face API returned success=false");
                 }
             } catch (Exception e) {
                 log.error("Failed to parse face API result from frontend: {}", e.getMessage(), e);

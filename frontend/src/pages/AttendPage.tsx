@@ -254,8 +254,21 @@ export default function AttendPage() {
       if (faceApiResponse.ok) {
         faceResult = await faceApiResponse.json()
         console.log('Face API response:', faceResult)
+        
+        // Log the result based on the format you specified
+        if (faceResult.success) {
+          if (faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
+            const detection = faceResult.detections[0]
+            console.log(`✅ Face detected: ${detection.class} (confidence: ${detection.confidence})`)
+          } else {
+            console.log('⚠️ Face API successful but no faces detected (total_faces=0)')
+          }
+        } else {
+          console.log('❌ Face API returned success=false')
+        }
       } else {
-        console.warn('Face API failed:', await faceApiResponse.text())
+        const errorText = await faceApiResponse.text()
+        console.warn('❌ Face API HTTP error:', faceApiResponse.status, errorText)
       }
       
       // Step 2: Send attendance data with face recognition result to backend
