@@ -276,7 +276,7 @@ export default function AttendPage() {
           setDebugInfo(`❌ Lỗi HTTP ${faceApiResponse.status}: ${errorText.substring(0, 100)}`)
         }
       } catch (faceApiError) {
-        setDebugInfo(`❌ Lỗi kết nối: ${faceApiError.message || 'Không thể kết nối Face API'}`)
+        setDebugInfo(`❌ Lỗi kết nối: ${(faceApiError as Error).message || 'Không thể kết nối Face API'}`)
         // Don't throw here - continue with submission even if Face API fails
       }
       

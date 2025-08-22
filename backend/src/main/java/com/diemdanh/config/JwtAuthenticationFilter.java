@@ -43,6 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (requestPath.startsWith("/api/auth/") ||
             requestPath.equals("/api/attendances") ||
+            requestPath.startsWith("/api/face-proxy/") ||
             requestPath.equals("/api/sessions/validate") ||
             requestPath.equals("/api/sessions/current") ||
             requestPath.matches("/api/sessions/.*/activate-qr2") ||
