@@ -1,7 +1,7 @@
 // API Configuration
 export const API_CONFIG = {
   // Base URL for API calls
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://diemdanh.zettix.net',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://diemdanh.zettix.net',
   
   // External Face API base URL
   FACE_API_BASE_URL: import.meta.env.VITE_FACE_API_BASE_URL || 'http://apimaycogiau.zettix.net',

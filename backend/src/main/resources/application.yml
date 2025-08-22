@@ -13,13 +13,14 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
 server:
-  port: 8080
+  port: 8083
+  forward-headers-strategy: framework
 
 app:
   faceApiUrl: http://apimaycogiau.zettix.net
   rotateSeconds: 20
   hmacSecret: change-me
-  frontendHost: http://diemdanh.zettix.net
+  frontendHost: https://diemdanh.zettix.net
 
 # Attendance system configuration
 attendance:
@@ -45,6 +46,8 @@ logging:
   level:
     root: INFO
     org.springframework.web: INFO
+
+# Respect X-Forwarded-* headers behind Nginx/SSL (already set above)
 
 ---
 spring:

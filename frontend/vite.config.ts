@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
-    port: 8000,
+    port: 3001,
     https: process.env.VITE_HTTPS ? {
       key: fs.readFileSync(process.env.VITE_SSL_KEY as string),
       cert: fs.readFileSync(process.env.VITE_SSL_CERT as string),
@@ -17,7 +17,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.VITE_API_BASE_URL || 'http://diemdanh.zettix.net',
+        target: process.env.VITE_API_BASE_URL || 'https://diemdanh.zettix.net',
         changeOrigin: true,
         secure: false,
       },
@@ -25,7 +25,7 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    port: 8000,
+    port: 3001,
   },
   build: {
     outDir: 'dist',
