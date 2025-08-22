@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.util.Base64;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/attendances")
@@ -127,6 +130,15 @@ public class AttendanceController {
             log.info("Setting status to REJECTED - low confidence: {}", confidence);
         }
 
+        // Convert image to base64
+        String imageBase64 = null;
+        try {
+            imageBase64 = Base64.getEncoder().encodeToString(bytes);
+            log.info("Image converted to base64, length: {} characters", imageBase64.length());
+        } catch (Exception e) {
+            log.error("Failed to convert image to base64: {}", e.getMessage());
+        }
+
         AttendanceEntity record = new AttendanceEntity();
         record.setQrCodeValue("session=" + sessionToken + "&rot=" + rotatingToken);
         record.setSessionId(sessionId);
@@ -134,6 +146,7 @@ public class AttendanceController {
         record.setFaceLabel(label);
         record.setFaceConfidence(confidence);
         record.setStatus(status);
+        record.setImageBase64(imageBase64);
         AttendanceEntity saved = attendanceRepository.save(record);
         
         log.info("Attendance record saved: id={}, sessionId={}, mssv={}, status={}, confidence={}", 

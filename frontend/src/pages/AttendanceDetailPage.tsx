@@ -13,6 +13,7 @@ import LoadingButton from '../components/LoadingButton'
 import DataTable from '../components/DataTable'
 import StatusDistributionCard from '../components/StatusDistributionCard'
 import RealtimeStatsCard from '../components/RealtimeStatsCard'
+import AttendanceImageDisplay from '../components/AttendanceImageDisplay'
 import { apiRequest } from '../config/api'
 
 type Attendance = {
@@ -24,6 +25,7 @@ type Attendance = {
   faceConfidence: number
   status: 'ACCEPTED' | 'REVIEW' | 'REJECTED'
   meta: string
+  imageBase64?: string
 }
 
 type Student = {
@@ -463,6 +465,18 @@ export default function AttendanceDetailPage() {
                 format: (value: any, row: any) => getStudentName(row.mssv)
               },
               {
+                id: 'imageBase64',
+                label: 'Ảnh điểm danh',
+                align: 'center' as const,
+                format: (value: any, row: any) => (
+                  <AttendanceImageDisplay 
+                    imageBase64={row.imageBase64}
+                    mssv={row.mssv}
+                    faceLabel={row.faceLabel}
+                  />
+                )
+              },
+              {
                 id: 'capturedAt',
                 label: 'Thời gian',
                 sortable: true,
@@ -494,7 +508,7 @@ export default function AttendanceDetailPage() {
             data={attendances?.content || []}
             totalCount={attendances?.totalElements || 0}
             page={page}
-            rowsPerPage={20}
+            rowsPerPage={25}
             onPageChange={setPage}
             onRowsPerPageChange={() => {}}
             onSort={(column, direction) => setSort({ column, direction })}
@@ -554,6 +568,16 @@ export default function AttendanceDetailPage() {
                 fullWidth
                 variant="outlined"
               />
+              {editingAttendance?.imageBase64 && (
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Ảnh điểm danh:</Typography>
+                  <AttendanceImageDisplay 
+                    imageBase64={editingAttendance.imageBase64}
+                    mssv={editingAttendance.mssv}
+                    faceLabel={editingAttendance.faceLabel}
+                  />
+                </Box>
+              )}
               <TextField
                 label="Face Label"
                 value={editingAttendance?.faceLabel || ''}

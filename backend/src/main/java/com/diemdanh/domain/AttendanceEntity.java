@@ -34,6 +34,10 @@ public class AttendanceEntity {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Lob
+    @Column(name = "image_base64", columnDefinition = "LONGTEXT")
+    private String imageBase64;
+
     @Column(name = "face_label")
     private String faceLabel;
 
