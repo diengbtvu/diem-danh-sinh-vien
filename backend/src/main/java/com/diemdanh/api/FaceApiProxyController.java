@@ -3,14 +3,15 @@ package com.diemdanh.api;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.*;
 import org.springframework.http.*;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/face-proxy")
@@ -29,38 +30,49 @@ public class FaceApiProxyController {
     @Value("${app.faceApiUrl:http://apimaycogiau.zettix.net}")
     private String faceApiUrl;
     
-    @PostMapping(value = "/predict", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/predict", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> predictFace(@RequestPart("image") MultipartFile image) {
         try {
             log.info("Proxying face API request: filename={}, size={} bytes", 
                 image.getOriginalFilename(), image.getSize());
             
-            // Prepare RestTemplate
-            RestTemplate restTemplate = new RestTemplate();
+            // Use OkHttp client (like curl internally uses)
+            OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .build();
             
-            // Prepare headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            headers.set("Accept", "application/json");
+            // Create multipart body exactly like curl
+            okhttp3.RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("image", image.getOriginalFilename(),
+                    okhttp3.RequestBody.create(image.getBytes(), okhttp3.MediaType.parse("image/jpeg")))
+                .build();
             
-            // Prepare multipart body
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("image", image.getResource());
-            
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = 
-                new HttpEntity<>(body, headers);
-            
-            // Call Face API
+            // Build request exactly like curl
             String url = faceApiUrl + "/api/v1/face-recognition/predict/file";
             log.info("Calling Face API: {}", url);
             
-            ResponseEntity<Map> response = restTemplate.postForEntity(
-                url, requestEntity, Map.class);
+            Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("Accept", "application/json")
+                .build();
             
-            log.info("Face API response: status={}, body={}", 
-                response.getStatusCode(), response.getBody());
-            
-            return ResponseEntity.ok(response.getBody());
+            // Execute request
+            try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body().string();
+                log.info("Face API response: status={}, body={}", response.code(), responseBody);
+                
+                if (response.isSuccessful()) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    Map responseMap = mapper.readValue(responseBody, Map.class);
+                    return ResponseEntity.ok(responseMap);
+                } else {
+                    throw new IOException("HTTP " + response.code() + ": " + responseBody);
+                }
+            }
             
         } catch (Exception e) {
             log.error("Face API proxy failed", e);
