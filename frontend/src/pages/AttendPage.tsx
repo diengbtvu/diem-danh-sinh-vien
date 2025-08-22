@@ -245,14 +245,17 @@ export default function AttendPage() {
       let faceResult = null
       
       try {
+        console.log('📡 Calling Face API proxy at /api/face-proxy/predict')
         const faceApiResponse = await fetch('/api/face-proxy/predict', {
           method: 'POST',
           body: (() => {
             const formData = new FormData()
             formData.append('image', blob, 'capture.jpg')
+            console.log('📤 FormData prepared with image blob:', blob.size, 'bytes')
             return formData
           })()
         })
+        console.log('📡 Face API response status:', faceApiResponse.status, faceApiResponse.statusText)
         
         if (faceApiResponse.ok) {
           faceResult = await faceApiResponse.json()
@@ -300,15 +303,20 @@ export default function AttendPage() {
       setSubmitted(true) // Mark as submitted to prevent camera restart
       
       // Show alert based on face recognition result
+      console.log('🎯 Final faceResult for alert:', JSON.stringify(faceResult, null, 2))
+      
       if (faceResult && faceResult.success && faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
         const detection = faceResult.detections[0]
         const mssv = detection.class?.split('_')[0] // Extract MSSV from "110122050_TranMinhDien"
         const name = detection.class?.split('_')[1] || 'Không rõ'
         
         alert(`✅ Đã nhận dạng được sinh viên!\nMSSV: ${mssv}\nTên: ${name}\nĐộ tin cậy: ${(detection.confidence * 100).toFixed(1)}%`)
-      } else if (faceResult && faceResult.success && faceResult.total_faces === 0) {
+      } else if (faceResult && faceResult.success === true && faceResult.total_faces === 0) {
         alert('⚠️ Không nhận dạng được khuôn mặt!\nHệ thống đã lưu ảnh để giáo viên xem xét.')
+      } else if (faceResult && faceResult.success === false) {
+        alert(`❌ Lỗi từ hệ thống nhận dạng khuôn mặt!\nLỗi: ${faceResult.error || 'Không rõ'}\nĐiểm danh đã được lưu để giáo viên xem xét.`)
       } else {
+        console.log('🔍 No valid faceResult - proxy call might have failed')
         alert('ℹ️ Không thể kết nối đến hệ thống nhận dạng khuôn mặt!\nĐiểm danh đã được lưu để giáo viên xem xét.')
       }
       
