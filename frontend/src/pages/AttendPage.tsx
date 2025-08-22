@@ -245,12 +245,8 @@ export default function AttendPage() {
       let faceResult = null
       
       try {
-        const faceApiResponse = await fetch('http://apimaycogiau.zettix.net/api/v1/face-recognition/predict/file', {
+        const faceApiResponse = await fetch('/api/face-proxy/predict', {
           method: 'POST',
-          mode: 'cors', // Explicitly set CORS mode
-          headers: {
-            'Accept': 'application/json',
-          },
           body: (() => {
             const formData = new FormData()
             formData.append('image', blob, 'capture.jpg')
