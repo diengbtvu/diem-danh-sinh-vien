@@ -35,12 +35,16 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // TEMPORARY: Allow all requests for debugging
-                .anyRequest().permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/sessions/*/status").permitAll()
+                .requestMatchers("/api/sessions/*/activate-qr2").permitAll()
+                .requestMatchers("/api/sessions/*/validate-qr").permitAll()
+                .requestMatchers("/api/face-proxy/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                .anyRequest().authenticated()
             );
 
-        // TEMPORARY: Comment out JWT filter for debugging
-        // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
