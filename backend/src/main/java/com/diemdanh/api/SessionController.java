@@ -57,6 +57,16 @@ public class SessionController {
         return authentication != null ? authentication.getName() : null;
     }
 
+    /**
+     * Helper method to check if session is expired
+     */
+    private boolean isSessionExpired(SessionService.SessionInfo session) {
+        if (session.getEndAt() == null) {
+            return false; // No end time means never expires
+        }
+        return Instant.now().isAfter(session.getEndAt());
+    }
+
     @PostMapping
     public CreateSessionResponse create(@RequestBody CreateSessionRequest req) {
         Instant start = req.getStartAt() != null ? Instant.parse(req.getStartAt()) : Instant.now();
@@ -98,6 +108,7 @@ public class SessionController {
         int actualWindowSeconds = windowSeconds != null ? windowSeconds : attendanceConfig.getQrBWindowSeconds();
         var info = sessionService.get(sessionId);
         if (info == null) throw new IllegalArgumentException("Session not found");
+        if (isSessionExpired(info)) throw new IllegalArgumentException("Session has expired");
         sessionService.activateQr2(sessionId, actualWindowSeconds);
         long now = Instant.now().getEpochSecond();
         String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond());
@@ -122,6 +133,7 @@ public class SessionController {
 
         var info = sessionService.get(sessionId);
         if (info == null) return ResponseEntity.notFound().build();
+        if (isSessionExpired(info)) return ResponseEntity.status(410).build(); // Gone - Session expired
 
         // Check if QR2 is currently active
         var status = sessionService.getActivationStatus(sessionId);
@@ -148,6 +160,9 @@ public class SessionController {
         var info = sessionService.get(sessionId);
         if (info == null) {
             return ResponseEntity.notFound().build();
+        }
+        if (isSessionExpired(info)) {
+            return ResponseEntity.status(410).build(); // Gone - Session expired
         }
         long now = Instant.now().getEpochSecond();
         String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond());

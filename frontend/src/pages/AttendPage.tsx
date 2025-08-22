@@ -82,13 +82,25 @@ export default function AttendPage() {
         fetch(`/api/sessions/${encodeURIComponent(sid)}/activate-qr2`, { method: 'POST' })
           .then(response => {
             console.log('activate-qr2 response status:', response.status)
+            if (response.status === 410) {
+              setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
+              return null
+            }
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`)
+            }
             return response.json()
           })
           .then(data => {
-            console.log('activate-qr2 response data:', data)
+            if (data) {
+              console.log('activate-qr2 response data:', data)
+            }
           })
           .catch(error => {
             console.error('activate-qr2 error:', error)
+            if (error.message.includes('Session has expired')) {
+              setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
+            }
           })
       }
     }
@@ -116,7 +128,12 @@ export default function AttendPage() {
         const response = await fetch(`/api/sessions/${sessionId}/status`)
         if (!response.ok) {
           if (response.status === 404 || response.status === 400) {
-            console.log('Session expired or not found, stopping QR polling')
+            console.log('Session not found, stopping QR polling')
+            return
+          }
+          if (response.status === 410) {
+            console.log('Session has expired, stopping QR polling and showing error')
+            setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
             return
           }
           return
