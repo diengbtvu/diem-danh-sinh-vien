@@ -86,7 +86,7 @@ export default function AttendanceDetailPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        size: '20',
+        size: '25',
         sortBy: sort.column,
         sortDir: sort.direction,
         ...(sessionId && { sessionId }),
@@ -457,9 +457,9 @@ export default function AttendanceDetailPage() {
                 sortable: true
               },
               {
-                id: 'mssv',
+                id: 'studentName',
                 label: 'Họ tên',
-                format: (value: any) => getStudentName(value)
+                format: (value: any, row: any) => getStudentName(row.mssv)
               },
               {
                 id: 'capturedAt',
