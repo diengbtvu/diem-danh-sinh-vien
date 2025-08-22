@@ -35,31 +35,12 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // Public endpoints
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/attendances").permitAll() // Cho phép điểm danh không cần đăng nhập
-                .requestMatchers("/api/face-proxy/**").permitAll() // Cho phép Face API proxy không cần đăng nhập
-                .requestMatchers("/api/sessions/validate").permitAll() // Validate session token
-                .requestMatchers("/api/sessions/current").permitAll() // Get current session
-                .requestMatchers("/api/sessions/*/activate-qr2").permitAll() // Cho phép sinh viên kích hoạt QR B
-                .requestMatchers("/api/sessions/*/validate-qr").permitAll() // Cho phép sinh viên validate QR B
-                
-                // Admin only endpoints
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/users/**").hasRole("ADMIN")
-                
-                // Giảng viên và Admin endpoints
-                .requestMatchers("/api/sessions/**").hasAnyRole("ADMIN", "GIANGVIEN")
-                .requestMatchers("/api/teacher/**").hasAnyRole("ADMIN", "GIANGVIEN")
-                .requestMatchers("/api/analytics/**").hasAnyRole("ADMIN", "GIANGVIEN")
-                .requestMatchers("/api/integrations/**").hasAnyRole("ADMIN", "GIANGVIEN")
-                
-                // Tất cả các endpoint khác cần authentication
-                .anyRequest().authenticated()
+                // TEMPORARY: Allow all requests for debugging
+                .anyRequest().permitAll()
             );
 
-        // Thêm JWT filter
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        // TEMPORARY: Comment out JWT filter for debugging
+        // http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

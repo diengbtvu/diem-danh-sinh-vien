@@ -273,7 +273,7 @@ export default function AttendPage() {
           }
         } else {
           const errorText = await faceApiResponse.text()
-          setDebugInfo(`❌ Lỗi HTTP ${faceApiResponse.status}: ${errorText.substring(0, 100)}`)
+          setDebugInfo(`❌ HTTP ${faceApiResponse.status}: ${errorText}`)
         }
       } catch (faceApiError) {
         setDebugInfo(`❌ Lỗi kết nối: ${(faceApiError as Error).message || 'Không thể kết nối Face API'}`)
