@@ -151,13 +151,15 @@ export default function AttendPage() {
 
   // Handle QR detection and validation
   const handleValidatedQR = useCallback(async (qrData: string) => {
+    // Debounce: if already have rotatingToken, ignore further scans
+    if (rotatingToken) return
     const isValid = await validateQRB(qrData)
     if (isValid) {
       handleQRDetected(qrData)
     } else {
       setError('QR B không hợp lệ hoặc đã hết hạn')
     }
-  }, [validateQRB, handleQRDetected])
+  }, [validateQRB, handleQRDetected, rotatingToken])
 
   const submit = useCallback(async () => {
     if (!previewUrl) return

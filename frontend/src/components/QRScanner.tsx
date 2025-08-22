@@ -44,15 +44,29 @@ export default function QRScanner({ videoRef, isActive, onQRDetected, onError }:
       const code = jsQR(imageData.data, imageData.width, imageData.height)
       
       if (code?.data) {
-        console.log('[QRScanner] Detected QR:', code.data)
-        
-        // Check if it's a valid QR B (STEP- format)
-        if (code.data.startsWith('STEP-')) {
-          setProgress(100)
-          onQRDetected(code.data)
-          return // Stop scanning
+        const raw = code.data.trim()
+        console.log('[QRScanner] Detected QR:', raw)
+
+        // Accept either pure token (STEP-...) or URL containing rot=<token>
+        let token: string | null = null
+        if (raw.startsWith('STEP-')) {
+          token = raw
         } else {
-          console.log('[QRScanner] Invalid QR format, expected STEP-*')
+          try {
+            const url = new URL(raw)
+            const rotParam = url.searchParams.get('rot')
+            if (rotParam && rotParam.startsWith('STEP-')) {
+              token = rotParam
+            }
+          } catch {
+            // Not a URL; ignore
+          }
+        }
+
+        if (token) {
+          setProgress(100)
+          onQRDetected(token)
+          return // Stop scanning
         }
       }
       
@@ -112,7 +126,8 @@ export default function QRScanner({ videoRef, isActive, onQRDetected, onError }:
         alignItems: 'center',
         justifyContent: 'center',
         background: 'rgba(0, 0, 0, 0.3)',
-        zIndex: 1
+        zIndex: 1,
+        pointerEvents: 'none'
       }}>
         <Box sx={{
           width: 200,

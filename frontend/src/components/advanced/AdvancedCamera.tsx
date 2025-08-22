@@ -165,10 +165,34 @@ export const AdvancedCamera: React.FC<AdvancedCameraProps> = ({
     }
   }, [stopCamera, onCameraReady, isReady]);
 
-  const switchCamera = useCallback(() => {
-    const newFacing = facing === 'user' ? 'environment' : 'user';
-    startCamera(newFacing);
-  }, [facing, startCamera]);
+  const switchCamera = useCallback(async () => {
+    try {
+      const newFacing = facing === 'user' ? 'environment' : 'user';
+      await startCamera(newFacing);
+    } catch (e) {
+      console.warn('Switch camera failed, trying exact deviceId selection', e);
+      try {
+        // Fallback: enumerate devices and pick back camera label
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        const back = videoInputs.find(d => /back|rear|environment/i.test(d.label)) || videoInputs[1] || videoInputs[0];
+        if (back) {
+          stopCamera();
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: back.deviceId }, audio: false });
+          streamRef.current = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            await videoRef.current.play();
+          }
+          setIsReady(true);
+          setFacing('environment');
+          onCameraReady?.(true);
+        }
+      } catch (err) {
+        setError('Không thể chuyển camera');
+      }
+    }
+  }, [facing, startCamera, stopCamera, onCameraReady]);
 
   const captureImage = useCallback(async (): Promise<CaptureResult | null> => {
     if (!videoRef.current || !canvasRef.current || !isReady) {
