@@ -53,6 +53,11 @@ public class AttendanceController {
         }
         var session = sessionService.get(sessionId);
         if (session == null) throw new IllegalArgumentException("Session not found");
+        
+        // Check if session has expired
+        if (session.getEndAt() != null && Instant.now().isAfter(session.getEndAt())) {
+            throw new IllegalArgumentException("Session has expired");
+        }
 
         long tokenStep = parseStep(rotatingToken);
         long now = Instant.now().getEpochSecond();
