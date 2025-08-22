@@ -242,34 +242,45 @@ export default function AttendPage() {
       
       // Step 1: Call Face API directly from frontend
       console.log('Calling Face Recognition API...')
-      const faceApiResponse = await fetch('http://apimaycogiau.zettix.net/api/v1/face-recognition/predict/file', {
-        method: 'POST',
-        body: (() => {
-          const formData = new FormData()
-          formData.append('image', blob, 'capture.jpg')
-          return formData
-        })()
-      })
-      
       let faceResult = null
-      if (faceApiResponse.ok) {
-        faceResult = await faceApiResponse.json()
-        console.log('Face API response:', faceResult)
+      
+      try {
+        const faceApiResponse = await fetch('http://apimaycogiau.zettix.net/api/v1/face-recognition/predict/file', {
+          method: 'POST',
+          mode: 'cors', // Explicitly set CORS mode
+          headers: {
+            'Accept': 'application/json',
+          },
+          body: (() => {
+            const formData = new FormData()
+            formData.append('image', blob, 'capture.jpg')
+            return formData
+          })()
+        })
         
-        // Log the result based on the format you specified
-        if (faceResult.success) {
-          if (faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
-            const detection = faceResult.detections[0]
-            console.log(`✅ Face detected: ${detection.class} (confidence: ${detection.confidence})`)
+        if (faceApiResponse.ok) {
+          faceResult = await faceApiResponse.json()
+          console.log('Face API response:', faceResult)
+          
+          // Log the result based on the format you specified
+          if (faceResult.success) {
+            if (faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
+              const detection = faceResult.detections[0]
+              console.log(`✅ Face detected: ${detection.class} (confidence: ${detection.confidence})`)
+            } else {
+              console.log('⚠️ Face API successful but no faces detected (total_faces=0)')
+            }
           } else {
-            console.log('⚠️ Face API successful but no faces detected (total_faces=0)')
+            console.log('❌ Face API returned success=false')
           }
         } else {
-          console.log('❌ Face API returned success=false')
+          const errorText = await faceApiResponse.text()
+          console.warn('❌ Face API HTTP error:', faceApiResponse.status, errorText)
         }
-      } else {
-        const errorText = await faceApiResponse.text()
-        console.warn('❌ Face API HTTP error:', faceApiResponse.status, errorText)
+      } catch (faceApiError) {
+        console.error('❌ Face API call failed:', faceApiError)
+        console.log('Will proceed without face recognition result')
+        // Don't throw here - continue with submission even if Face API fails
       }
       
       // Step 2: Send attendance data with face recognition result to backend
@@ -299,8 +310,10 @@ export default function AttendPage() {
         const name = detection.class?.split('_')[1] || 'Không rõ'
         
         alert(`✅ Đã nhận dạng được sinh viên!\nMSSV: ${mssv}\nTên: ${name}\nĐộ tin cậy: ${(detection.confidence * 100).toFixed(1)}%`)
+      } else if (faceResult && faceResult.success && faceResult.total_faces === 0) {
+        alert('⚠️ Không nhận dạng được khuôn mặt!\nHệ thống đã lưu ảnh để giáo viên xem xét.')
       } else {
-        alert('⚠️ Không nhận dạng được khuôn mặt!\nVui lòng thử lại hoặc liên hệ giáo viên.')
+        alert('ℹ️ Không thể kết nối đến hệ thống nhận dạng khuôn mặt!\nĐiểm danh đã được lưu để giáo viên xem xét.')
       }
       
     } catch (e: any) {
