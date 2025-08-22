@@ -13,6 +13,7 @@ import com.diemdanh.repo.SessionRepository;
 import com.diemdanh.repo.StudentRepository;
 import com.diemdanh.service.QrTokenService;
 import com.diemdanh.service.SessionService;
+import com.diemdanh.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -42,6 +43,7 @@ public class SessionController {
     private final StudentRepository studentRepository;
     private final SessionRepository sessionRepository;
     private final ClassRepository classRepository;
+    private final NotificationService notificationService;
 
     @Value("${app.rotateSeconds:20}")
     private int defaultRotateSeconds;
@@ -114,6 +116,22 @@ public class SessionController {
         String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond());
         String rotatingToken = qrTokenService.buildRotatingToken(info.getSessionId(), info.getStartAt().getEpochSecond(), now);
         var status = sessionService.getActivationStatus(sessionId);
+        
+        // Send WebSocket notification for QR B activation
+        try {
+            var qrBNotification = new NotificationService.SessionNotification("QR_B_ACTIVATED", sessionId, "QR B đã được kích hoạt");
+            qrBNotification.data = Map.of(
+                "qr2Active", status.active(),
+                "rotatingToken", rotatingToken,
+                "validForMs", status.validForMs(),
+                "sessionToken", sessionToken
+            );
+            notificationService.sendSessionUpdate(sessionId, qrBNotification);
+        } catch (Exception e) {
+            // Log error but don't fail the request
+            System.err.println("Failed to send QR B activation notification: " + e.getMessage());
+        }
+        
         return SessionStatusResponse.builder()
                 .sessionId(sessionId)
                 .qr2Active(status.active())

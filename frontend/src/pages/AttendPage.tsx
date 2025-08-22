@@ -10,6 +10,7 @@ import {
 import LoadingButton from '../components/LoadingButton'
 import StepIndicator from '../components/StepIndicator'
 import { AdvancedCamera } from '../components/advanced/AdvancedCamera'
+import useWebSocket from '../hooks/useWebSocket'
 
 function useQuery() { return new URLSearchParams(window.location.search) }
 
@@ -38,6 +39,23 @@ export default function AttendPage() {
   const [cameraReady, setCameraReady] = useState(false)
   const [scanningProgress, setScanningProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
+  const [wsConnected, setWsConnected] = useState(false)
+
+  // WebSocket connection for real-time QR B updates
+  const { connected: wsConnectionStatus, subscribe, unsubscribe } = useWebSocket({
+    onConnect: () => {
+      console.log('[AttendPage] WebSocket connected')
+      setWsConnected(true)
+    },
+    onDisconnect: () => {
+      console.log('[AttendPage] WebSocket disconnected')
+      setWsConnected(false)
+    },
+    onError: (error) => {
+      console.error('[AttendPage] WebSocket error:', error)
+      setWsConnected(false)
+    }
+  })
 
   // Define steps for the attendance process
   const steps = [
@@ -106,33 +124,68 @@ export default function AttendPage() {
     }
   }, [sessionToken])
 
-  // Polling mechanism to check QR B status from server
+  // WebSocket subscription for real-time QR B updates
   useEffect(() => {
-    if (!sessionToken || rotatingToken) return
+    if (!sessionToken || rotatingToken || !wsConnectionStatus) return
 
     const sessionId = parseSessionIdFromSessionToken(sessionToken)
     if (!sessionId) return
 
+    const topic = `/topic/session/${sessionId}`
+    console.log(`[AttendPage] Subscribing to ${topic} for QR B updates`)
+
+    const subscription = subscribe(topic, (message) => {
+      console.log('[AttendPage] WebSocket message received:', message)
+      
+      if (message.type === 'QR_B_ACTIVATED' && message.data) {
+        const { qr2Active, rotatingToken: newRotatingToken } = message.data
+        
+        if (qr2Active && newRotatingToken && !rotatingToken) {
+          console.log('[AttendPage] QR B activated via WebSocket, setting token:', newRotatingToken)
+          setRotatingToken(newRotatingToken)
+          setCurrentStep(3)
+          setError(null) // Clear any previous errors
+        }
+      }
+    })
+
+    return () => {
+      if (subscription) {
+        console.log(`[AttendPage] Unsubscribing from ${topic}`)
+        unsubscribe(topic)
+      }
+    }
+  }, [sessionToken, rotatingToken, wsConnectionStatus, subscribe, unsubscribe])
+
+  // Fallback polling for cases where WebSocket fails (reduced frequency)
+  useEffect(() => {
+    if (!sessionToken || rotatingToken || wsConnected) return
+
+    const sessionId = parseSessionIdFromSessionToken(sessionToken)
+    if (!sessionId) return
+
+    console.log('[AttendPage] WebSocket not connected, using fallback polling')
     let isActive = true
     let pollCount = 0
-    const maxPollCount = 300 // Stop after 10 minutes (300 * 2s)
+    const maxPollCount = 150 // Reduced: Stop after 5 minutes (150 * 2s)
     
     const pollQRStatus = async () => {
       try {
         pollCount++
         if (pollCount > maxPollCount) {
-          console.log('QR polling timeout after 10 minutes')
+          console.log('Fallback polling timeout after 5 minutes')
+          setError('Không thể kết nối real-time. Vui lòng tải lại trang.')
           return
         }
 
         const response = await fetch(`/api/sessions/${sessionId}/status`)
         if (!response.ok) {
           if (response.status === 404 || response.status === 400) {
-            console.log('Session not found, stopping QR polling')
+            console.log('Session not found, stopping fallback polling')
             return
           }
           if (response.status === 410) {
-            console.log('Session has expired, stopping QR polling and showing error')
+            console.log('Session has expired, stopping fallback polling')
             setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
             return
           }
@@ -141,25 +194,36 @@ export default function AttendPage() {
         
         const data = await response.json()
         if (isActive && data.qr2Active && data.rotatingToken && !rotatingToken) {
-          console.log('QR B is now active from server, setting rotatingToken:', data.rotatingToken)
+          console.log('QR B is now active from fallback polling, setting token:', data.rotatingToken)
           setRotatingToken(data.rotatingToken)
           setCurrentStep(3)
         }
       } catch (error) {
-        console.error('Error polling QR status:', error)
-        // Continue polling despite errors
+        console.error('Error in fallback polling:', error)
       }
     }
 
-    // Poll immediately and then every 2 seconds
-    pollQRStatus()
-    const interval = setInterval(pollQRStatus, 2000)
+    // Start fallback polling after 3 seconds to give WebSocket time to connect
+    const timeout = setTimeout(() => {
+      if (!wsConnected && isActive) {
+        pollQRStatus()
+        const interval = setInterval(pollQRStatus, 5000) // Poll every 5 seconds instead of 2
+        
+        // Store interval in a ref or something to clean up
+        const cleanup = () => {
+          clearInterval(interval)
+        }
+        
+        // Return cleanup function
+        return cleanup
+      }
+    }, 3000)
 
     return () => {
       isActive = false
-      clearInterval(interval)
+      clearTimeout(timeout)
     }
-  }, [sessionToken, rotatingToken])
+  }, [sessionToken, rotatingToken, wsConnected])
 
   useEffect(() => {
     if (cameraReady && !rotatingToken) {
@@ -264,12 +328,20 @@ export default function AttendPage() {
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
             Điểm danh sinh viên
           </Typography>
-          <Chip
-            label={sessionToken ? 'Đã kết nối' : 'Chưa kết nối'}
-            color={sessionToken ? 'success' : 'warning'}
-            size="small"
-            sx={{ color: 'white', fontWeight: 500 }}
-          />
+          <Stack direction="row" spacing={1}>
+            <Chip
+              label={sessionToken ? 'Đã kết nối' : 'Chưa kết nối'}
+              color={sessionToken ? 'success' : 'warning'}
+              size="small"
+              sx={{ color: 'white', fontWeight: 500 }}
+            />
+            <Chip
+              label={wsConnected ? 'Real-time' : 'Polling'}
+              color={wsConnected ? 'success' : 'info'}
+              size="small"
+              sx={{ color: 'white', fontWeight: 500 }}
+            />
+          </Stack>
         </Toolbar>
       </AppBar>
 
@@ -322,10 +394,16 @@ export default function AttendPage() {
                 {cameraReady && !rotatingToken && (
                   <Alert severity="info" sx={{ mt: 2 }}>
                     <Typography variant="body2">
-                      Đang tự động kiểm tra QR B từ giảng viên...
+                      {wsConnected 
+                        ? 'Đang chờ giảng viên kích hoạt QR B (Real-time)...' 
+                        : 'Đang kiểm tra QR B từ giảng viên...'
+                      }
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Khi QR B xuất hiện, hệ thống sẽ tự động nhận diện hoặc bạn có thể hướng camera vào QR để quét
+                      {wsConnected 
+                        ? 'Hệ thống sẽ tự động nhận QR B ngay khi giảng viên kích hoạt'
+                        : 'Khi QR B xuất hiện, hệ thống sẽ tự động nhận diện hoặc bạn có thể hướng camera vào QR để quét'
+                      }
                     </Typography>
                   </Alert>
                 )}
