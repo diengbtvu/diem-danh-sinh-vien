@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/attendances").permitAll()
                 .requestMatchers("/api/attendances/**").permitAll()
                 .requestMatchers("/api/face-proxy/**").permitAll()
+                .requestMatchers("/api/test/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated()
             );
