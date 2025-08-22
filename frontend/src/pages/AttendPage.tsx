@@ -94,6 +94,56 @@ export default function AttendPage() {
     }
   }, [sessionToken])
 
+  // Polling mechanism to check QR B status from server
+  useEffect(() => {
+    if (!sessionToken || rotatingToken) return
+
+    const sessionId = parseSessionIdFromSessionToken(sessionToken)
+    if (!sessionId) return
+
+    let isActive = true
+    let pollCount = 0
+    const maxPollCount = 300 // Stop after 10 minutes (300 * 2s)
+    
+    const pollQRStatus = async () => {
+      try {
+        pollCount++
+        if (pollCount > maxPollCount) {
+          console.log('QR polling timeout after 10 minutes')
+          return
+        }
+
+        const response = await fetch(`/api/sessions/${sessionId}/status`)
+        if (!response.ok) {
+          if (response.status === 404 || response.status === 400) {
+            console.log('Session expired or not found, stopping QR polling')
+            return
+          }
+          return
+        }
+        
+        const data = await response.json()
+        if (isActive && data.qr2Active && data.rotatingToken && !rotatingToken) {
+          console.log('QR B is now active from server, setting rotatingToken:', data.rotatingToken)
+          setRotatingToken(data.rotatingToken)
+          setCurrentStep(3)
+        }
+      } catch (error) {
+        console.error('Error polling QR status:', error)
+        // Continue polling despite errors
+      }
+    }
+
+    // Poll immediately and then every 2 seconds
+    pollQRStatus()
+    const interval = setInterval(pollQRStatus, 2000)
+
+    return () => {
+      isActive = false
+      clearInterval(interval)
+    }
+  }, [sessionToken, rotatingToken])
+
   useEffect(() => {
     if (cameraReady && !rotatingToken) {
       setCurrentStep(2)
@@ -255,10 +305,10 @@ export default function AttendPage() {
                 {cameraReady && !rotatingToken && (
                   <Alert severity="info" sx={{ mt: 2 }}>
                     <Typography variant="body2">
-                      Đang chờ giảng viên kích hoạt QR B trên màn hình lớp...
+                      Đang tự động kiểm tra QR B từ giảng viên...
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Khi QR B xuất hiện, hãy hướng camera vào QR để quét
+                      Khi QR B xuất hiện, hệ thống sẽ tự động nhận diện hoặc bạn có thể hướng camera vào QR để quét
                     </Typography>
                   </Alert>
                 )}
