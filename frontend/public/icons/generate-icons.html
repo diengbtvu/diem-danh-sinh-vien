@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <p>Click the button to generate and download all required icons.</p>
+    <button onclick="generateAllIcons()">Generate All Icons</button>
+    
+    <script>
+        function generateIcon(size, text = '📚') {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#2563eb');
+            gradient.addColorStop(1, '#3b82f6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Rounded corners effect
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            const radius = size * 0.125; // 12.5% radius
+            roundRect(ctx, 0, 0, size, size, radius);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Icon content
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            if (size >= 128) {
+                // Large icons - draw face icon
+                // Head circle
+                ctx.beginPath();
+                ctx.arc(size / 2, size * 0.35, size * 0.12, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Body rectangle
+                ctx.fillRect(size * 0.375, size * 0.5, size * 0.25, size * 0.2);
+                
+                // Text
+                ctx.font = `${size * 0.08}px Arial`;
+                ctx.fillText('ĐIỂM DANH', size / 2, size * 0.85);
+            } else if (size >= 32) {
+                // Medium icons - simple face
+                ctx.beginPath();
+                ctx.arc(size / 2, size * 0.4, size * 0.15, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.fillRect(size * 0.35, size * 0.6, size * 0.3, size * 0.15);
+            } else {
+                // Small icons - just a circle
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size * 0.3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            return canvas.toDataURL('image/png');
+        }
+        
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+        
+        function downloadIcon(dataUrl, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = dataUrl;
+            link.click();
+        }
+        
+        function generateAllIcons() {
+            const sizes = [16, 32, 72, 96, 128, 144, 152, 192, 384, 512];
+            
+            sizes.forEach(size => {
+                const dataUrl = generateIcon(size);
+                downloadIcon(dataUrl, `icon-${size}x${size}.png`);
+            });
+            
+            console.log('All icons generated and downloaded!');
+            alert('All icons have been generated and downloaded. Please move them to the icons folder.');
+        }
+    </script>
+</body>
+</html>

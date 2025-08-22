@@ -27,4 +27,11 @@ public interface StudentRepository extends JpaRepository<StudentEntity, String> 
     List<String> findDistinctMaLop();
 
     boolean existsByMssvAndMaLop(String mssv, String maLop);
+
+    // Methods for teacher-specific queries
+    Page<StudentEntity> findByMaLopInAndHoTenContainingIgnoreCase(List<String> maLopList, String hoTen, Pageable pageable);
+
+    Page<StudentEntity> findByMaLopIn(List<String> maLopList, Pageable pageable);
+
+    long countByMaLopIn(List<String> maLopList);
 }

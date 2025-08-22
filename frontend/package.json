@@ -15,7 +15,10 @@
     "@mui/icons-material": "5.15.20",
     "@mui/material": "5.15.20",
     "@stomp/stompjs": "^7.1.1",
+    "@types/qrcode": "^1.5.5",
+    "framer-motion": "^12.23.12",
     "jsqr": "1.4.0",
+    "qrcode": "^1.5.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "6.26.1",
@@ -26,6 +29,7 @@
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "@vitejs/plugin-react": "4.3.1",
+    "terser": "^5.43.1",
     "typescript": "5.5.4",
     "vite": "5.4.2"
   }

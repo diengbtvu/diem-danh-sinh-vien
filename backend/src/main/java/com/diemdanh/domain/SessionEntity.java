@@ -1,5 +1,7 @@
 package com.diemdanh.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,5 +33,21 @@ public class SessionEntity {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_username", referencedColumnName = "username")
+    @JsonIgnore
+    private UserEntity createdBy;
+
+    /**
+     * Check if the session is currently active (not yet ended)
+     */
+    @JsonProperty("isActive")
+    public boolean isActive() {
+        if (endAt == null) {
+            return true; // No end time means always active
+        }
+        return Instant.now().isBefore(endAt);
+    }
 }
 

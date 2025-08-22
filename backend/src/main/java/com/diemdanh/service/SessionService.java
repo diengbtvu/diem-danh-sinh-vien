@@ -1,7 +1,9 @@
 package com.diemdanh.service;
 
 import com.diemdanh.domain.SessionEntity;
+import com.diemdanh.domain.UserEntity;
 import com.diemdanh.repo.SessionRepository;
+import com.diemdanh.repo.UserRepository;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -18,11 +20,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SessionService {
     private final Map<String, SessionInfo> store = new ConcurrentHashMap<>();
     private final SessionRepository sessionRepository;
+    private final UserRepository userRepository;
 
     @Value("${app.rotateSeconds:20}")
     private int defaultRotateSeconds;
 
-    public SessionInfo create(String maLop, Instant startAt, Instant endAt, Integer rotateSeconds) {
+    public SessionInfo create(String maLop, Instant startAt, Instant endAt, Integer rotateSeconds, String createdByUsername) {
         String sessionId = UUID.randomUUID().toString();
         int rotate = rotateSeconds != null ? rotateSeconds : defaultRotateSeconds;
         Instant start = startAt != null ? startAt : Instant.now();
@@ -34,6 +37,13 @@ public class SessionService {
         entity.setStartAt(start);
         entity.setEndAt(endAt);
         entity.setRotateSeconds(rotate);
+
+        // Set createdBy if username is provided
+        if (createdByUsername != null) {
+            UserEntity createdBy = userRepository.findByUsername(createdByUsername).orElse(null);
+            entity.setCreatedBy(createdBy);
+        }
+
         sessionRepository.save(entity);
 
         SessionInfo info = SessionInfo.builder()
@@ -45,6 +55,11 @@ public class SessionService {
                 .build();
         store.put(sessionId, info);
         return info;
+    }
+
+    // Overloaded method for backward compatibility
+    public SessionInfo create(String maLop, Instant startAt, Instant endAt, Integer rotateSeconds) {
+        return create(maLop, startAt, endAt, rotateSeconds, null);
     }
 
     public SessionInfo get(String sessionId) {

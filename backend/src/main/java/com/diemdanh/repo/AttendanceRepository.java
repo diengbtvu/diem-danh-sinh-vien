@@ -45,4 +45,8 @@ public interface AttendanceRepository extends JpaRepository<AttendanceEntity, UU
 
     @Query("SELECT a FROM AttendanceEntity a JOIN SessionEntity s ON a.sessionId = s.sessionId WHERE s.maLop = :maLop ORDER BY a.capturedAt DESC")
     List<AttendanceEntity> findByClassMaLop(@Param("maLop") String maLop);
+
+    // Additional methods for teacher session detail page
+    Page<AttendanceEntity> findBySessionIdAndStatusAndMssvContainingIgnoreCase(String sessionId, AttendanceEntity.Status status, String mssv, Pageable pageable);
+    Page<AttendanceEntity> findBySessionIdAndMssvContainingIgnoreCase(String sessionId, String mssv, Pageable pageable);
 }

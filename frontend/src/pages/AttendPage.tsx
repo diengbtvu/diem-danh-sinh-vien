@@ -4,13 +4,12 @@ import {
   Box, Fade, Chip, LinearProgress, IconButton, Tooltip
 } from '@mui/material'
 import {
-  CameraAlt, Cameraswitch, CheckCircle, QrCodeScanner, Person,
+  CameraAlt, CheckCircle, QrCodeScanner, Person,
   Refresh, Info, Warning, Error as ErrorIcon
 } from '@mui/icons-material'
-import jsQR from 'jsqr'
 import LoadingButton from '../components/LoadingButton'
 import StepIndicator from '../components/StepIndicator'
-import CameraCapture from '../components/CameraCapture'
+import { AdvancedCamera } from '../components/advanced/AdvancedCamera'
 
 function useQuery() { return new URLSearchParams(window.location.search) }
 
@@ -70,14 +69,27 @@ export default function AttendPage() {
   ] as const
 
   useEffect(() => {
+    console.log('AttendPage useEffect triggered, sessionToken:', sessionToken)
     if (!sessionToken) {
       setError('Thiếu token phiên (QR A). Hãy quét QR A trên màn hình lớp học.')
       setCurrentStep(0)
     } else {
       setCurrentStep(1)
       const sid = parseSessionIdFromSessionToken(sessionToken)
+      console.log('Parsed session ID:', sid)
       if (sid) {
-        fetch(`/api/sessions/${encodeURIComponent(sid)}/activate-qr2`, { method: 'POST' }).catch(() => {})
+        console.log('Calling activate-qr2 API for session:', sid)
+        fetch(`/api/sessions/${encodeURIComponent(sid)}/activate-qr2`, { method: 'POST' })
+          .then(response => {
+            console.log('activate-qr2 response status:', response.status)
+            return response.json()
+          })
+          .then(data => {
+            console.log('activate-qr2 response data:', data)
+          })
+          .catch(error => {
+            console.error('activate-qr2 error:', error)
+          })
       }
     }
   }, [sessionToken])
@@ -99,9 +111,15 @@ export default function AttendPage() {
     }
   }, [])
 
-  const handleCapture = useCallback((imageDataUrl: string) => {
-    setPreviewUrl(imageDataUrl)
+  const handleCapture = useCallback((result: any) => {
+    // AdvancedCamera returns CaptureResult object
+    setPreviewUrl(result.imageDataUrl)
     setCurrentStep(4)
+    console.log('Advanced capture result:', {
+      faceDetected: result.faceDetected,
+      qualityScore: result.qualityScore,
+      livenessScore: result.livenessScore
+    })
   }, [])
 
   const handleQRDetected = useCallback((qrData: string) => {
@@ -171,7 +189,7 @@ export default function AttendPage() {
 
   return (
     <>
-      <AppBar position="static" sx={{ backgroundColor: '#1976d2', borderRadius: 0 }}>
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2', borderRadius: 0, boxShadow: 'none', border: 'none' }}>
         <Toolbar>
           <QrCodeScanner sx={{ mr: 2 }} />
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
@@ -185,6 +203,8 @@ export default function AttendPage() {
           />
         </Toolbar>
       </AppBar>
+
+
 
       <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
         <Container sx={{ py: 4 }}>
@@ -216,11 +236,16 @@ export default function AttendPage() {
                   </Fade>
                 )}
 
-                <CameraCapture
+                <AdvancedCamera
                   onCapture={handleCapture}
                   onCameraReady={handleCameraReady}
                   onQRDetected={handleValidatedQR}
                   enableQRScanning={cameraReady && !rotatingToken}
+                  enableFaceDetection={true}
+                  enableQualityAssessment={true}
+                  enableLivenessCheck={false}
+                  autoCapture={false}
+                  qualityThreshold={0.7}
                   disabled={submitting}
                 />
 

@@ -20,6 +20,7 @@ import ChartCard from '../components/ChartCard'
 import DataTable from '../components/DataTable'
 import NotificationCenter from '../components/NotificationCenter'
 import StatusDistributionCard from '../components/StatusDistributionCard'
+import { apiRequest } from '../config/api'
 
 type Session = {
   sessionId: string
@@ -118,7 +119,7 @@ export default function AdminPage() {
     let active = true
     const tick = async () => {
       try {
-        const resp = await fetch(`/api/sessions/${qrSessionId}/status`)
+        const resp = await apiRequest(`/api/sessions/${qrSessionId}/status`)
         if (!resp.ok) {
           // Session not found or expired, stop polling
           if (resp.status === 404 || resp.status === 400) {
@@ -159,7 +160,7 @@ export default function AdminPage() {
       sortDir: sessionSort.direction,
       ...(sessionSearch && { search: sessionSearch })
     })
-    const response = await fetch(`/api/admin/sessions?${params}`)
+    const response = await apiRequest(`/api/admin/sessions?${params}`)
     const data = await response.json()
     setSessions(data)
   }, [pageS, sessionSort, sessionSearch])
@@ -172,7 +173,7 @@ export default function AdminPage() {
       sortDir: studentSort.direction,
       ...(studentSearch && { search: studentSearch })
     })
-    const response = await fetch(`/api/admin/students?${params}`)
+    const response = await apiRequest(`/api/admin/students?${params}`)
     const data = await response.json()
     setStudents(data)
   }, [pageStu, studentSort, studentSearch])
@@ -182,10 +183,10 @@ export default function AdminPage() {
   const createStudent = async () => {
     setLoading(true)
     try {
-      await fetch('/api/admin/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(studentForm) })
+      await apiRequest('/api/admin/students', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(studentForm) })
       setStudentForm({})
       setPageStu(0)
-      fetch(`/api/admin/students?page=0&size=10`).then(r => r.json()).then(setStudents)
+      apiRequest(`/api/admin/students?page=0&size=10`).then(r => r.json()).then(setStudents)
     } finally {
       setLoading(false)
     }
@@ -195,7 +196,7 @@ export default function AdminPage() {
     if (!editingStudent) return
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/students/${editingStudent.mssv}`, {
+      const response = await apiRequest(`/api/admin/students/${editingStudent.mssv}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editStudentForm)
@@ -222,7 +223,7 @@ export default function AdminPage() {
     if (!editingSession) return
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/sessions/${editingSession.sessionId}`, {
+      const response = await apiRequest(`/api/admin/sessions/${editingSession.sessionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,7 +250,7 @@ export default function AdminPage() {
     if (!confirm('Bạn có chắc muốn xóa buổi học này?')) return
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/sessions/${sessionId}`, {
+      const response = await apiRequest(`/api/admin/sessions/${sessionId}`, {
         method: 'DELETE'
       })
       if (response.ok) {
@@ -263,7 +264,7 @@ export default function AdminPage() {
   const fetchStats = useCallback(async () => {
     if (!selectedSessionId) return
     try {
-      const response = await fetch(`/api/admin/stats/${selectedSessionId}`)
+      const response = await apiRequest(`/api/admin/stats/${selectedSessionId}`)
       if (response.ok) {
         const data = await response.json()
         setStats(data)
@@ -275,7 +276,7 @@ export default function AdminPage() {
 
   const fetchOverview = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/dashboard/overview')
+      const response = await apiRequest('/api/admin/dashboard/overview')
       if (response.ok) {
         const data = await response.json()
         console.log('Overview data received:', data)
@@ -288,7 +289,7 @@ export default function AdminPage() {
 
   const fetchDashboardStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/dashboard/stats')
+      const response = await apiRequest('/api/admin/dashboard/stats')
       if (response.ok) {
         const data = await response.json()
         console.log('Dashboard stats received:', data)
@@ -302,7 +303,7 @@ export default function AdminPage() {
   const importStudents = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/students/import', {
+      const response = await apiRequest('/api/admin/students/import', {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: csvText
@@ -320,7 +321,7 @@ export default function AdminPage() {
   // Load classes for create session
   const loadClasses = useCallback(async () => {
     try {
-      const response = await fetch('/api/sessions/classes')
+      const response = await apiRequest('/api/sessions/classes')
       if (response.ok) {
         const data = await response.json()
         setClasses(data.classes)
@@ -343,7 +344,7 @@ export default function AdminPage() {
     setCreateError(null)
 
     try {
-      const response = await fetch('/api/sessions/simple', {
+      const response = await apiRequest('/api/sessions/simple', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -358,7 +359,7 @@ export default function AdminPage() {
 
         // Activate QR B for the new session
         try {
-          const activateResponse = await fetch(`/api/sessions/${data.sessionId}/activate-qr2`, {
+          const activateResponse = await apiRequest(`/api/sessions/${data.sessionId}/activate-qr2`, {
             method: 'POST'
           })
           if (activateResponse.ok) {
@@ -430,7 +431,7 @@ export default function AdminPage() {
     let active = true
     const tick = async () => {
       try {
-        const resp = await fetch(`/api/sessions/${createResult.sessionId}/status`)
+        const resp = await apiRequest(`/api/sessions/${createResult.sessionId}/status`)
         if (!resp.ok) {
           // Session not found or expired, stop polling
           if (resp.status === 404 || resp.status === 400) {
@@ -460,7 +461,7 @@ export default function AdminPage() {
 
   return (
     <>
-      <AppBar position="static" sx={{ backgroundColor: '#1976d2', borderRadius: 0 }}>
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2', borderRadius: 0, boxShadow: 'none', border: 'none' }}>
         <Toolbar>
           <Dashboard sx={{ mr: 2 }} />
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
@@ -1142,7 +1143,7 @@ export default function AdminPage() {
                         icon: <Delete />,
                         onClick: (row) => {
                           if (confirm(`Bạn có chắc muốn xóa sinh viên ${row.hoTen}?`)) {
-                            fetch(`/api/admin/students/${row.mssv}`, { method: 'DELETE' })
+                            apiRequest(`/api/admin/students/${row.mssv}`, { method: 'DELETE' })
                               .then(() => fetchStudents())
                           }
                         },

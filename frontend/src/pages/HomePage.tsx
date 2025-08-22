@@ -1,19 +1,32 @@
 import React from 'react'
 import {
-  AppBar, Toolbar, Typography, Container, Box, Grid, Paper, Button,
-  Card, CardContent, CardActions, List, ListItem, ListItemIcon, ListItemText,
-  Divider, Stack, Chip
+  Typography, Box, Grid, Button,
+  Stack, useTheme, alpha
 } from '@mui/material'
 import {
-  School, QrCodeScanner, CameraAlt, Assessment, Security, Speed,
-  CheckCircle, People, Dashboard, Login
+  School, QrCodeScanner, Assessment, Security, Speed,
+  CheckCircle, People, Dashboard, Login, AutoAwesome,
+  TrendingUp, Shield, Bolt
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { useVisitorCounter } from '../hooks/useVisitorCounter'
+import { useAuth } from '../hooks/useAuth'
+import ProfessionalLayout from '../components/ProfessionalLayout'
+import ProfessionalCard, { StatsCard } from '../components/ProfessionalCard'
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const theme = useTheme()
   const { totalVisits, todayVisits, onlineUsers } = useVisitorCounter()
+  const { isAuthenticated, user, logout } = useAuth()
+
+  const handleDashboardNavigation = () => {
+    if (user?.role === 'ADMIN') {
+      navigate('/admin-dashboard')
+    } else if (user?.role === 'GIANGVIEN') {
+      navigate('/teacher-dashboard')
+    }
+  }
 
   const formatNumber = (num: number): string => {
     return num.toLocaleString('vi-VN')
@@ -21,264 +34,288 @@ export default function HomePage() {
 
   const features = [
     {
-      icon: <QrCodeScanner />,
-      title: 'QR Code Điểm Danh',
-      description: 'Hệ thống QR code động với 2 lớp bảo mật, tự động xoay mã để chống gian lận'
+      icon: <QrCodeScanner sx={{ fontSize: 28 }} />,
+      title: 'QR Code Thông Minh',
+      description: 'Hệ thống QR code động với 2 lớp bảo mật, tự động xoay mã để chống gian lận',
+      color: 'primary' as const
     },
     {
-      icon: <CameraAlt />,
-      title: 'Nhận Diện Khuôn Mặt',
-      description: 'Tích hợp AI nhận diện khuôn mặt để xác thực danh tính sinh viên'
+      icon: <Shield sx={{ fontSize: 28 }} />,
+      title: 'Bảo Mật Tuyệt Đối',
+      description: 'Mã hóa HMAC, token có thời hạn, chống giả mạo QR code hoàn toàn',
+      color: 'error' as const
     },
     {
-      icon: <Assessment />,
-      title: 'Báo Cáo Thống Kê',
-      description: 'Dashboard quản lý với thống kê chi tiết, xuất báo cáo Excel'
-    },
-    {
-      icon: <Security />,
-      title: 'Bảo Mật Cao',
-      description: 'Mã hóa HMAC, token có thời hạn, chống giả mạo QR code'
-    },
-    {
-      icon: <Speed />,
+      icon: <Bolt sx={{ fontSize: 28 }} />,
       title: 'Thời Gian Thực',
-      description: 'Cập nhật trạng thái điểm danh ngay lập tức, không cần refresh'
+      description: 'Cập nhật trạng thái điểm danh ngay lập tức với WebSocket',
+      color: 'warning' as const
     },
     {
-      icon: <People />,
-      title: 'Quản Lý Sinh Viên',
-      description: 'Import danh sách sinh viên từ Excel, quản lý thông tin lớp học'
-    }
-  ]
-
-  const steps = [
-    {
-      step: '1',
-      title: 'Giảng viên tạo buổi học',
-      description: 'Tạo session điểm danh với thông tin lớp học và thời gian'
+      icon: <Assessment sx={{ fontSize: 28 }} />,
+      title: 'Thống Kê Thông Minh',
+      description: 'Dashboard analytics với AI insights và báo cáo tự động',
+      color: 'success' as const
     },
     {
-      step: '2', 
-      title: 'Hiển thị QR Code',
-      description: 'QR A hiển thị trên màn hình lớp, QR B xuất hiện khi cần thiết'
+      icon: <AutoAwesome sx={{ fontSize: 28 }} />,
+      title: 'AI Face Recognition',
+      description: 'Nhận diện khuôn mặt với độ chính xác cao, chống gian lận',
+      color: 'secondary' as const
     },
     {
-      step: '3',
-      title: 'Sinh viên quét QR',
-      description: 'Quét QR A để mở trang điểm danh, sau đó quét QR B'
-    },
-    {
-      step: '4',
-      title: 'Chụp ảnh xác thực',
-      description: 'Chụp ảnh khuôn mặt để hệ thống AI xác thực danh tính'
-    },
-    {
-      step: '5',
-      title: 'Kết quả điểm danh',
-      description: 'Hệ thống xử lý và hiển thị kết quả điểm danh ngay lập tức'
+      icon: <People sx={{ fontSize: 28 }} />,
+      title: 'Quản Lý Toàn Diện',
+      description: 'Import Excel, quản lý sinh viên, lớp học một cách dễ dàng',
+      color: 'primary' as const
     }
   ]
 
   return (
-    <>
-      {/* Header */}
-      <AppBar position="static" sx={{ backgroundColor: '#1976d2', borderRadius: 0 }}>
-        <Toolbar>
-          <School sx={{ mr: 2 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
-            Hệ Thống Điểm Danh - Đại Học An Giang
-          </Typography>
-          <Button
-            color="inherit"
-            startIcon={<Login />}
-            onClick={() => navigate('/admin')}
-          >
-            Đăng nhập
-          </Button>
-        </Toolbar>
-      </AppBar>
-
+    <ProfessionalLayout
+      headerProps={{
+        title: "Hệ thống điểm danh thông minh",
+        subtitle: "Đại học An Giang - Công nghệ AI & QR Code",
+        user: isAuthenticated ? {
+          name: user?.hoTen || 'User',
+          role: user?.role || 'USER'
+        } : undefined,
+        onLogout: logout,
+        onDashboard: handleDashboardNavigation,
+        showActions: isAuthenticated
+      }}
+    >
       {/* Hero Section */}
-      <Box sx={{ backgroundColor: '#f5f5f5', py: 8 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 700, color: '#1976d2' }}>
-                Hệ Thống Điểm Danh Thông Minh
-              </Typography>
-              <Typography variant="h5" color="text.secondary" paragraph sx={{ mb: 2 }}>
-                Giải pháp điểm danh hiện đại với QR Code và AI nhận diện khuôn mặt
-                dành cho Đại học An Giang
-              </Typography>
-              <Typography variant="body1" color="warning.main" sx={{ mb: 4, fontStyle: 'italic' }}>
-                Hệ thống đang trong quá trình phát triển và thử nghiệm
-              </Typography>
-              <Stack direction="row" spacing={2}>
-                <Button 
-                  variant="contained" 
-                  size="large" 
-                  startIcon={<QrCodeScanner />}
-                  onClick={() => navigate('/attend')}
-                  sx={{ px: 4, py: 1.5 }}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+          borderRadius: 4,
+          p: { xs: 4, md: 6 },
+          mb: 6,
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23000000" fill-opacity="0.02"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+            opacity: 0.5
+          }
+        }}
+      >
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Typography
+            variant="h2"
+            sx={{
+              fontWeight: 800,
+              mb: 2,
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontSize: { xs: '2rem', md: '3rem' }
+            }}
+          >
+            Điểm danh thông minh với AI
+          </Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              color: 'text.secondary',
+              mb: 4,
+              maxWidth: 600,
+              mx: 'auto',
+              lineHeight: 1.6
+            }}
+          >
+            Hệ thống điểm danh hiện đại với QR Code động, nhận diện khuôn mặt AI và bảo mật tuyệt đối
+          </Typography>
+
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            justifyContent="center"
+            sx={{ mb: 4 }}
+          >
+            {!isAuthenticated ? (
+              <>
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<Login />}
+                  onClick={() => navigate('/login')}
+                  sx={{
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    borderRadius: 3,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                    '&:hover': {
+                      boxShadow: '0 12px 40px rgba(0,0,0,0.16)',
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
                 >
-                  Điểm Danh Ngay
+                  Đăng nhập hệ thống
                 </Button>
                 <Button
                   variant="outlined"
                   size="large"
-                  startIcon={<Dashboard />}
-                  onClick={() => navigate('/admin')}
-                  sx={{ px: 4, py: 1.5 }}
+                  startIcon={<QrCodeScanner />}
+                  onClick={() => navigate('/attend')}
+                  sx={{
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    borderRadius: 3,
+                    borderWidth: 2,
+                    '&:hover': {
+                      borderWidth: 2,
+                      transform: 'translateY(-2px)'
+                    }
+                  }}
                 >
-                  Xem Demo
+                  Điểm danh ngay
                 </Button>
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Paper elevation={3} sx={{ p: 4, textAlign: 'center', backgroundColor: 'white' }}>
-                <QrCodeScanner sx={{ fontSize: 120, color: '#1976d2', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Quét QR Code để điểm danh
-                </Typography>
-                <Typography color="text.secondary">
-                  Nhanh chóng, chính xác, bảo mật cao
-                </Typography>
-              </Paper>
-            </Grid>
-          </Grid>
-        </Container>
+              </>
+            ) : (
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<Dashboard />}
+                onClick={handleDashboardNavigation}
+                sx={{
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  borderRadius: 3,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                  '&:hover': {
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.16)',
+                    transform: 'translateY(-2px)'
+                  }
+                }}
+              >
+                Vào Dashboard
+              </Button>
+            )}
+          </Stack>
+        </Box>
       </Box>
 
+      {/* Stats Section */}
+      <Grid container spacing={3} sx={{ mb: 6 }}>
+        <Grid item xs={12} md={4}>
+          <StatsCard
+            title="Tổng lượt truy cập"
+            value={formatNumber(totalVisits)}
+            icon={<TrendingUp sx={{ fontSize: 32 }} />}
+            color="primary"
+            trend="up"
+            trendValue="+12% tuần này"
+          />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <StatsCard
+            title="Truy cập hôm nay"
+            value={formatNumber(todayVisits)}
+            icon={<CheckCircle sx={{ fontSize: 32 }} />}
+            color="success"
+            trend="up"
+            trendValue="+8% so với hôm qua"
+          />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <StatsCard
+            title="Người dùng online"
+            value={formatNumber(onlineUsers)}
+            icon={<People sx={{ fontSize: 32 }} />}
+            color="warning"
+            trend="neutral"
+            trendValue="Thời gian thực"
+          />
+        </Grid>
+      </Grid>
+
       {/* Features Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Typography variant="h3" component="h2" textAlign="center" gutterBottom sx={{ fontWeight: 600, mb: 6 }}>
-          Tính Năng Nổi Bật
+      <Box sx={{ mb: 6 }}>
+        <Typography
+          variant="h3"
+          sx={{
+            textAlign: 'center',
+            mb: 2,
+            fontWeight: 700,
+            color: 'text.primary'
+          }}
+        >
+          Tính năng nổi bật
         </Typography>
-        <Grid container spacing={4}>
+        <Typography
+          variant="h6"
+          sx={{
+            textAlign: 'center',
+            mb: 5,
+            color: 'text.secondary',
+            maxWidth: 600,
+            mx: 'auto'
+          }}
+        >
+          Hệ thống được thiết kế với công nghệ tiên tiến nhất để đảm bảo tính chính xác và bảo mật
+        </Typography>
+
+        <Grid container spacing={3}>
           {features.map((feature, index) => (
-            <Grid item xs={12} md={4} key={index}>
-              <Card sx={{ height: '100%', textAlign: 'center', p: 2 }}>
-                <CardContent>
-                  <Box sx={{ color: '#1976d2', mb: 2 }}>
-                    {React.cloneElement(feature.icon, { sx: { fontSize: 48 } })}
-                  </Box>
-                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                    {feature.title}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    {feature.description}
-                  </Typography>
-                </CardContent>
-              </Card>
+            <Grid item xs={12} md={6} lg={4} key={index}>
+              <ProfessionalCard
+                title={feature.title}
+                description={feature.description}
+                icon={feature.icon}
+                variant="gradient"
+                color={feature.color}
+                sx={{
+                  height: '100%',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                  }
+                }}
+              />
             </Grid>
           ))}
         </Grid>
-      </Container>
-
-      {/* How it works */}
-      <Box sx={{ backgroundColor: '#f5f5f5', py: 8 }}>
-        <Container maxWidth="lg">
-          <Typography variant="h3" component="h2" textAlign="center" gutterBottom sx={{ fontWeight: 600, mb: 6 }}>
-            Cách Thức Hoạt Động
-          </Typography>
-          <Grid container spacing={4}>
-            {steps.map((step, index) => (
-              <Grid item xs={12} md={2.4} key={index}>
-                <Card sx={{ height: '100%', textAlign: 'center', p: 2 }}>
-                  <CardContent>
-                    <Chip 
-                      label={step.step} 
-                      sx={{ 
-                        backgroundColor: '#1976d2', 
-                        color: 'white', 
-                        fontSize: '1.2rem',
-                        width: 40,
-                        height: 40,
-                        mb: 2
-                      }} 
-                    />
-                    <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                      {step.title}
-                    </Typography>
-                    <Typography color="text.secondary" variant="body2">
-                      {step.description}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
       </Box>
 
-      {/* About Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Grid container spacing={6} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <Typography variant="h3" component="h2" gutterBottom sx={{ fontWeight: 600 }}>
-              Về Đại Học An Giang
-            </Typography>
-            <Typography variant="body1" paragraph color="text.secondary" sx={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
-              Đại học An Giang là một trong những trường đại học hàng đầu khu vực Đồng bằng sông Cửu Long,
-              luôn tiên phong trong việc ứng dụng công nghệ vào giáo dục.
-            </Typography>
-            <Typography variant="body1" paragraph color="text.secondary" sx={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
-              Hệ thống điểm danh thông minh này được phát triển nhằm nâng cao chất lượng quản lý giáo dục,
-              giúp giảng viên và sinh viên có trải nghiệm học tập tốt hơn.
-            </Typography>
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <CheckCircle sx={{ color: '#4caf50' }} />
-                </ListItemIcon>
-                <ListItemText primary="Tiết kiệm thời gian điểm danh" />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <CheckCircle sx={{ color: '#4caf50' }} />
-                </ListItemIcon>
-                <ListItemText primary="Chống gian lận hiệu quả" />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <CheckCircle sx={{ color: '#4caf50' }} />
-                </ListItemIcon>
-                <ListItemText primary="Báo cáo thống kê chi tiết" />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <CheckCircle sx={{ color: '#4caf50' }} />
-                </ListItemIcon>
-                <ListItemText primary="Dễ sử dụng, thân thiện" />
-              </ListItem>
-            </List>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ p: 4, backgroundColor: '#1976d2', color: 'white', textAlign: 'center' }}>
-              <School sx={{ fontSize: 80, mb: 2 }} />
-              <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
-                Đại Học An Giang
-              </Typography>
-              <Typography variant="h6" sx={{ mb: 3 }}>
-                Đổi mới - Sáng tạo - Phát triển
-              </Typography>
-              <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.3)' }} />
-              <Typography variant="body1">
-                Địa chỉ: 18 Ung Văn Khiêm, Phường Đông Xuyên, TP. Long Xuyên, An Giang
-              </Typography>
-              <Typography variant="body1" sx={{ mt: 1 }}>
-                Website: www.agu.edu.vn
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
-
       {/* CTA Section */}
-      <Box sx={{ backgroundColor: '#1976d2', color: 'white', py: 6 }}>
-        <Container maxWidth="lg" sx={{ textAlign: 'center' }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          borderRadius: 4,
+          p: { xs: 4, md: 6 },
+          textAlign: 'center',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+            opacity: 0.3
+          }
+        }}
+      >
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 2 }}>
             Sẵn sàng trải nghiệm?
           </Typography>
           <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
@@ -287,106 +324,27 @@ export default function HomePage() {
           <Button
             variant="contained"
             size="large"
-            sx={{ backgroundColor: 'white', color: '#1976d2', '&:hover': { backgroundColor: '#f5f5f5' } }}
-            startIcon={<QrCodeScanner />}
-            onClick={() => navigate('/attend')}
+            startIcon={<AutoAwesome />}
+            onClick={() => navigate(isAuthenticated ? (user?.role === 'ADMIN' ? '/admin-dashboard' : '/teacher-dashboard') : '/login')}
+            sx={{
+              bgcolor: 'white',
+              color: 'primary.main',
+              px: 4,
+              py: 1.5,
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              borderRadius: 3,
+              '&:hover': {
+                bgcolor: alpha('#ffffff', 0.9),
+                transform: 'translateY(-2px)',
+                boxShadow: '0 8px 32px rgba(255,255,255,0.3)'
+              }
+            }}
           >
-            Điểm Danh Ngay
+            {isAuthenticated ? 'Vào Dashboard' : 'Bắt đầu ngay'}
           </Button>
-        </Container>
+        </Box>
       </Box>
-
-      {/* Footer */}
-      <Box sx={{ backgroundColor: '#333', color: 'white', py: 4 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} sx={{ alignItems: 'flex-start' }}>
-            <Grid item xs={12} md={3}>
-              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Đại Học An Giang
-                </Typography>
-                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
-                  18 Ung Văn Khiêm, Phường Đông Xuyên<br />
-                  TP. Long Xuyên, An Giang
-                </Typography>
-                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
-                  ☎ (0296) 3841 390
-                </Typography>
-                <Typography variant="body2" color="grey.400">
-                  ✉ dhag@agu.edu.vn
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Hệ Thống Điểm Danh
-                </Typography>
-                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
-                  Phiên bản: 1.0.0
-                </Typography>
-                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
-                  Cập nhật: Tháng 8, 2024
-                </Typography>
-                <Typography variant="body2" color="grey.400">
-                  Hỗ trợ: support@agu.edu.vn
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Phát Triển Bởi
-                </Typography>
-                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
-                  Khoa Công nghệ Thông tin
-                </Typography>
-                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
-                  Đại học An Giang
-                </Typography>
-                <Typography variant="body2" color="orange.300" sx={{ fontStyle: 'italic' }}>
-                  Đang phát triển
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  Thống Kê Truy Cập
-                </Typography>
-                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
-                  <strong>{formatNumber(totalVisits)}</strong> Tổng lượt truy cập
-                </Typography>
-                <Typography variant="body2" color="grey.400" sx={{ mb: 1 }}>
-                  <strong>{formatNumber(todayVisits)}</strong> Hôm nay
-                </Typography>
-                <Typography variant="body2" color="grey.400">
-                  <strong>{formatNumber(onlineUsers)}</strong> Đang online
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 4, borderColor: 'grey.700' }} />
-
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={8}>
-              <Typography variant="body2" color="grey.400">
-                © 2024 Đại học An Giang. Tất cả quyền được bảo lưu.
-              </Typography>
-
-            </Grid>
-            <Grid item xs={12} md={4} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
-              <Typography variant="body2" color="grey.400">
-                v1.0.0 - Build 2024.08
-              </Typography>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-    </>
+    </ProfessionalLayout>
   )
 }

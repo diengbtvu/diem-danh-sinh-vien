@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Placeholder Icons</title>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <p>This page generates placeholder icons for the PWA. Open browser console and run the script.</p>
+    
+    <script>
+        // Function to generate a simple icon
+        function generateIcon(size, text = '📚') {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#2563eb');
+            gradient.addColorStop(1, '#3b82f6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Border radius effect (rounded corners)
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            const radius = size * 0.2;
+            ctx.roundRect(0, 0, size, size, radius);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Icon/text
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            if (size >= 128) {
+                ctx.font = `${size * 0.4}px Arial`;
+                ctx.fillText(text, size / 2, size / 2);
+            } else if (size >= 32) {
+                ctx.font = `${size * 0.5}px Arial`;
+                ctx.fillText(text, size / 2, size / 2);
+            } else {
+                // For very small icons, use a simple shape
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size * 0.3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            return canvas.toDataURL('image/png');
+        }
+        
+        // Function to download an icon
+        function downloadIcon(dataUrl, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = dataUrl;
+            link.click();
+        }
+        
+        // Generate all required icons
+        function generateAllIcons() {
+            const sizes = [16, 32, 72, 96, 128, 144, 152, 192, 384, 512];
+            
+            sizes.forEach(size => {
+                const dataUrl = generateIcon(size);
+                downloadIcon(dataUrl, `icon-${size}x${size}.png`);
+            });
+            
+            // Generate shortcut icons
+            const attendIcon = generateIcon(96, '✓');
+            downloadIcon(attendIcon, 'shortcut-attend.png');
+            
+            const adminIcon = generateIcon(96, '⚙');
+            downloadIcon(adminIcon, 'shortcut-admin.png');
+            
+            // Generate badge icon
+            const badgeIcon = generateIcon(72, '!');
+            downloadIcon(badgeIcon, 'badge-72x72.png');
+            
+            console.log('All icons generated and downloaded!');
+        }
+        
+        // Add roundRect polyfill for older browsers
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                this.beginPath();
+                this.moveTo(x + radius, y);
+                this.lineTo(x + width - radius, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius);
+                this.lineTo(x + width, y + height - radius);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                this.lineTo(x + radius, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius);
+                this.lineTo(x, y + radius);
+                this.quadraticCurveTo(x, y, x + radius, y);
+                this.closePath();
+            };
+        }
+        
+        console.log('Run generateAllIcons() to create and download all placeholder icons');
+    </script>
+    
+    <button onclick="generateAllIcons()">Generate All Icons</button>
+</body>
+</html>

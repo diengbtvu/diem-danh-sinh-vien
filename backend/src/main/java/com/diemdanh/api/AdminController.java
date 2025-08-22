@@ -3,9 +3,11 @@ package com.diemdanh.api;
 import com.diemdanh.domain.AttendanceEntity;
 import com.diemdanh.domain.SessionEntity;
 import com.diemdanh.domain.StudentEntity;
+import com.diemdanh.domain.UserEntity;
 import com.diemdanh.repo.AttendanceRepository;
 import com.diemdanh.repo.SessionRepository;
 import com.diemdanh.repo.StudentRepository;
+import com.diemdanh.repo.UserRepository;
 import com.diemdanh.service.QrTokenService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -43,6 +47,15 @@ public class AdminController {
     private final StudentRepository studentRepository;
     private final AttendanceRepository attendanceRepository;
     private final QrTokenService qrTokenService;
+    private final UserRepository userRepository;
+
+    /**
+     * Helper method to get current authenticated user
+     */
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null ? authentication.getName() : null;
+    }
 
     // Sessions CRUD
     @GetMapping("/sessions")
@@ -91,6 +104,13 @@ public class AdminController {
             s.setStartAt(parseInstantOrNow(req.getStartAt()));
             s.setEndAt(parseInstantOrNull(req.getEndAt()));
             s.setRotateSeconds(req.getRotateSeconds() != null ? req.getRotateSeconds() : qrTokenService.getRotateSeconds());
+
+            // Set createdBy
+            String currentUsername = getCurrentUsername();
+            if (currentUsername != null) {
+                UserEntity createdBy = userRepository.findByUsername(currentUsername).orElse(null);
+                s.setCreatedBy(createdBy);
+            }
 
             SessionEntity saved = sessionRepository.save(s);
             return ResponseEntity.ok(saved);

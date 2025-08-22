@@ -8,6 +8,7 @@ import com.diemdanh.api.dto.CreateSessionSimpleRequest;
 import com.diemdanh.api.dto.RotatingTokenResponse;
 import com.diemdanh.api.dto.SessionStatusResponse;
 import com.diemdanh.config.AttendanceConfig;
+import com.diemdanh.repo.ClassRepository;
 import com.diemdanh.repo.SessionRepository;
 import com.diemdanh.repo.StudentRepository;
 import com.diemdanh.service.QrTokenService;
@@ -16,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -38,6 +41,7 @@ public class SessionController {
     private final AttendanceConfig attendanceConfig;
     private final StudentRepository studentRepository;
     private final SessionRepository sessionRepository;
+    private final ClassRepository classRepository;
 
     @Value("${app.rotateSeconds:20}")
     private int defaultRotateSeconds;
@@ -45,12 +49,21 @@ public class SessionController {
     @Value("${app.frontendHost:http://localhost:5173}")
     private String frontendHost;
 
+    /**
+     * Helper method to get current authenticated user
+     */
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null ? authentication.getName() : null;
+    }
+
     @PostMapping
     public CreateSessionResponse create(@RequestBody CreateSessionRequest req) {
         Instant start = req.getStartAt() != null ? Instant.parse(req.getStartAt()) : Instant.now();
         Instant end = req.getEndAt() != null ? Instant.parse(req.getEndAt()) : null;
 
-        var info = sessionService.create(req.getMaLop(), start, end, req.getRotateSeconds());
+        String currentUsername = getCurrentUsername();
+        var info = sessionService.create(req.getMaLop(), start, end, req.getRotateSeconds(), currentUsername);
         String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), start.getEpochSecond());
         return CreateSessionResponse.builder()
                 .sessionId(info.getSessionId())
@@ -184,7 +197,7 @@ public class SessionController {
     @PostMapping("/simple")
     public CreateSessionResponse createSimple(@RequestBody CreateSessionSimpleRequest req) {
         // Validate class exists
-        if (!studentRepository.findDistinctMaLop().contains(req.getMaLop())) {
+        if (!classRepository.existsById(req.getMaLop())) {
             throw new IllegalArgumentException("Mã lớp không tồn tại: " + req.getMaLop());
         }
 
@@ -194,7 +207,8 @@ public class SessionController {
 
         int rotateSeconds = attendanceConfig.getQrRotateSeconds();
 
-        var info = sessionService.create(req.getMaLop(), start, end, rotateSeconds);
+        String currentUsername = getCurrentUsername();
+        var info = sessionService.create(req.getMaLop(), start, end, rotateSeconds, currentUsername);
         String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), start.getEpochSecond());
 
         return CreateSessionResponse.builder()

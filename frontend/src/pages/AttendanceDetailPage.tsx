@@ -276,7 +276,7 @@ export default function AttendanceDetailPage() {
 
   return (
     <>
-      <AppBar position="static" elevation={0} sx={{ bgcolor: 'primary.main' }}>
+      <AppBar position="static" elevation={0} sx={{ bgcolor: 'primary.main', boxShadow: 'none', border: 'none' }}>
         <Toolbar>
           <IconButton
             edge="start"

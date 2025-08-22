@@ -1,0 +1,6 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="24" fill="#2563eb"/>
+  <circle cx="96" cy="80" r="24" fill="white"/>
+  <rect x="72" y="120" width="48" height="32" rx="4" fill="white"/>
+  <text x="96" y="170" text-anchor="middle" fill="white" font-family="Arial" font-size="14" font-weight="bold">ĐIỂM DANH</text>
+</svg>
