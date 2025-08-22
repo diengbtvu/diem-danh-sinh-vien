@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -22,6 +23,7 @@ import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
@@ -40,14 +42,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Skip JWT processing for public endpoints
         String requestPath = request.getRequestURI();
+        log.info("JwtFilter: Processing request to {} (method: {})", requestPath, request.getMethod());
 
-        if (requestPath.startsWith("/api/auth/") ||
-            requestPath.equals("/api/attendances") ||
+        boolean isPublicEndpoint = requestPath.startsWith("/api/auth/") ||
+            requestPath.startsWith("/api/attendances") ||
             requestPath.startsWith("/api/face-proxy/") ||
             requestPath.equals("/api/sessions/validate") ||
             requestPath.equals("/api/sessions/current") ||
             requestPath.matches("/api/sessions/.*/activate-qr2") ||
-            requestPath.matches("/api/sessions/.*/validate-qr")) {
+            requestPath.matches("/api/sessions/.*/validate-qr");
+            
+        log.info("JwtFilter: Path {} is public endpoint: {}", requestPath, isPublicEndpoint);
+
+        if (isPublicEndpoint) {
+            log.info("JwtFilter: Allowing public endpoint {}", requestPath);
             filterChain.doFilter(request, response);
             return;
         }
