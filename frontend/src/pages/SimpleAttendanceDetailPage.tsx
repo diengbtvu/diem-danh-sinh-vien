@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { apiRequest } from '../config/api'
 
 export default function SimpleAttendanceDetailPage() {
   const [searchParams] = useSearchParams()
@@ -17,7 +18,7 @@ export default function SimpleAttendanceDetailPage() {
       
       try {
         console.log('Fetching stats for sessionId:', sessionId)
-        const response = await fetch(`/api/admin/stats/${sessionId}`)
+        const response = await apiRequest(`/api/admin/stats/${sessionId}`)
         console.log('Response status:', response.status)
         
         if (response.ok) {

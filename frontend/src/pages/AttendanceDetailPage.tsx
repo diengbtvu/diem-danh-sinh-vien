@@ -13,6 +13,7 @@ import LoadingButton from '../components/LoadingButton'
 import DataTable from '../components/DataTable'
 import StatusDistributionCard from '../components/StatusDistributionCard'
 import RealtimeStatsCard from '../components/RealtimeStatsCard'
+import { apiRequest } from '../config/api'
 
 type Attendance = {
   id: string
@@ -71,7 +72,7 @@ export default function AttendanceDetailPage() {
       return
     }
     try {
-      const response = await fetch(`/api/admin/sessions/${sessionId}`)
+      const response = await apiRequest(`/api/admin/sessions/${sessionId}`)
       if (response.ok) {
         const data = await response.json()
         setSession(data)
@@ -93,7 +94,7 @@ export default function AttendanceDetailPage() {
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter })
       })
-      const response = await fetch(`/api/admin/attendances?${params}`)
+      const response = await apiRequest(`/api/admin/attendances?${params}`)
       if (response.ok) {
         const data = await response.json()
         setAttendances(data)
@@ -110,7 +111,7 @@ export default function AttendanceDetailPage() {
       if (sessionId) {
         // Fetch stats for specific session
         console.log('Fetching stats for sessionId:', sessionId)
-        const response = await fetch(`/api/admin/stats/${sessionId}`)
+        const response = await apiRequest(`/api/admin/stats/${sessionId}`)
         console.log('Stats response status:', response.status)
         if (response.ok) {
           const data = await response.json()
@@ -122,7 +123,7 @@ export default function AttendanceDetailPage() {
       } else {
         // Fetch dashboard stats (all sessions)
         console.log('Fetching dashboard stats (all sessions)')
-        const response = await fetch('/api/admin/dashboard/stats')
+        const response = await apiRequest('/api/admin/dashboard/stats')
         console.log('Dashboard stats response status:', response.status)
         if (response.ok) {
           const data = await response.json()
@@ -140,7 +141,7 @@ export default function AttendanceDetailPage() {
   const fetchStudents = useCallback(async () => {
     if (!session?.maLop) return
     try {
-      const response = await fetch(`/api/admin/students?maLop=${session.maLop}&size=1000`)
+      const response = await apiRequest(`/api/admin/students?maLop=${session.maLop}&size=1000`)
       if (response.ok) {
         const data = await response.json()
         setStudents(data.content || [])
@@ -179,7 +180,7 @@ export default function AttendanceDetailPage() {
     if (!editingAttendance) return
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/attendances/${editingAttendance.id}`, {
+      const response = await apiRequest(`/api/admin/attendances/${editingAttendance.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -201,7 +202,7 @@ export default function AttendanceDetailPage() {
     if (!confirm('Bạn có chắc muốn xóa bản ghi điểm danh này?')) return
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/attendances/${id}`, {
+      const response = await apiRequest(`/api/admin/attendances/${id}`, {
         method: 'DELETE'
       })
       if (response.ok) {
@@ -226,7 +227,7 @@ export default function AttendanceDetailPage() {
         ? `/api/admin/export/detailed/${sessionId}`
         : `/api/admin/export/${sessionId}`
 
-      const response = await fetch(endpoint)
+      const response = await apiRequest(endpoint)
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)

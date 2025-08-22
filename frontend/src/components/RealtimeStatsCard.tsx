@@ -6,6 +6,7 @@ import {
 import {
   Refresh, TrendingUp, AccessTime, Person, CheckCircle, Warning, Error
 } from '@mui/icons-material'
+import { apiRequest } from '../config/api'
 
 interface RealtimeStats {
   sessionId: string
@@ -42,7 +43,7 @@ export default function RealtimeStatsCard({
 
     try {
       console.log('Fetching realtime stats for:', sessionId)
-      const response = await fetch(`/api/admin/stats/realtime/${sessionId}`)
+      const response = await apiRequest(`/api/admin/stats/realtime/${sessionId}`)
       console.log('Realtime stats response:', response.status)
       if (response.ok) {
         const data = await response.json()
