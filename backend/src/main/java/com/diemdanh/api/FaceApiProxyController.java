@@ -16,7 +16,14 @@ import java.util.Map;
 @RequestMapping("/api/face-proxy")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"*"})
+@CrossOrigin(origins = {
+    "https://zettix.net",
+    "https://www.zettix.net", 
+    "https://diemdanh.zettix.net",
+    "http://localhost:8000",
+    "http://localhost:5173",
+    "http://localhost:5174"
+}, allowCredentials = "true")
 public class FaceApiProxyController {
     
     @Value("${app.faceApiUrl:http://apimaycogiau.zettix.net}")
