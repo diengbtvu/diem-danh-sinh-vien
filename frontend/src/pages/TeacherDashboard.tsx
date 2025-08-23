@@ -54,7 +54,16 @@ import {
   People,
   Refresh,
   Upload,
-  Download
+  Download,
+  CalendarToday,
+  Business,
+  MenuBook,
+  TrendingUp,
+  CheckCircle,
+  Groups,
+  Rocket,
+  Analytics,
+  LightbulbOutlined
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -886,11 +895,12 @@ export const TeacherDashboard: React.FC = () => {
                   <StaggerItem>
                     <Card sx={{ 
                       mb: 4, 
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      bgcolor: 'primary.main',
                       color: 'white',
                       position: 'relative',
                       overflow: 'hidden',
                       minHeight: 200,
+                      boxShadow: '0 8px 32px rgba(25, 118, 210, 0.15)',
                       '&::before': {
                         content: '""',
                         position: 'absolute',
@@ -898,17 +908,6 @@ export const TeacherDashboard: React.FC = () => {
                         right: -50,
                         width: 200,
                         height: 200,
-                        background: 'rgba(255,255,255,0.1)',
-                        borderRadius: '50%',
-                        zIndex: 1
-                      },
-                      '&::after': {
-                        content: '""',
-                        position: 'absolute',
-                        bottom: -30,
-                        left: -30,
-                        width: 150,
-                        height: 150,
                         background: 'rgba(255,255,255,0.05)',
                         borderRadius: '50%',
                         zIndex: 1
@@ -918,37 +917,41 @@ export const TeacherDashboard: React.FC = () => {
                         <Grid container spacing={3} alignItems="center">
                           <Grid item xs={12} md={8}>
                             <Box>
-                              <Typography variant="h3" fontWeight={700} gutterBottom sx={{ mb: 1 }}>
-                                Xin chào, {user?.hoTen}! 👋
+                                                            <Typography variant="h3" fontWeight={700} gutterBottom sx={{ mb: 1 }}>
+                                Xin chào, {user?.hoTen}!
                               </Typography>
                               <Typography variant="h6" sx={{ opacity: 0.9, mb: 2 }}>
                                 {user?.role === 'ADMIN' ? 'Quản lý hệ thống điểm danh' : 'Chào mừng bạn quay trở lại với hệ thống điểm danh'}
                               </Typography>
-                              <Box display="flex" gap={1} flexWrap="wrap">
+                              <Box display="flex" gap={1} flexWrap="wrap" alignItems="center">
                                 <Chip
-                                  label={`📚 ${user?.khoa}`}
+                                  icon={<Business sx={{ fontSize: 16 }} />}
+                                  label={user?.khoa}
                                   sx={{
                                     bgcolor: 'rgba(255,255,255,0.25)',
                                     color: 'white',
                                     fontWeight: 600,
-                                    backdropFilter: 'blur(10px)'
+                                    '& .MuiChip-icon': { color: 'white' }
                                   }}
                                 />
                                 <Chip
-                                  label={`🎓 ${user?.boMon}`}
+                                  icon={<MenuBook sx={{ fontSize: 16 }} />}
+                                  label={user?.boMon}
                                   sx={{
                                     bgcolor: 'rgba(255,255,255,0.25)',
                                     color: 'white',
                                     fontWeight: 600,
-                                    backdropFilter: 'blur(10px)'
+                                    '& .MuiChip-icon': { color: 'white' }
                                   }}
                                 />
                                 <Chip
-                                  label={`⏰ ${new Date().toLocaleDateString('vi-VN')}`}
+                                  icon={<CalendarToday sx={{ fontSize: 16 }} />}
+                                  label={new Date().toLocaleDateString('vi-VN')}
                                   sx={{
                                     bgcolor: 'rgba(255,255,255,0.15)',
                                     color: 'white',
-                                    fontWeight: 500
+                                    fontWeight: 500,
+                                    '& .MuiChip-icon': { color: 'white' }
                                   }}
                                 />
                               </Box>
@@ -976,72 +979,55 @@ export const TeacherDashboard: React.FC = () => {
                             </Box>
                           </Grid>
                         </Grid>
-                      </CardContent>
-                    </Card>
+                  </CardContent>
+                </Card>
                   </StaggerItem>
 
                   {/* Enhanced Stats Cards */}
                   <StaggerItem>
-                    <Grid container spacing={3} mb={4}>
+                <Grid container spacing={3} mb={4}>
                       <Grid item xs={12} sm={6} md={4}>
                         <Card sx={{ 
-                          background: 'linear-gradient(135deg, #1e88e5 0%, #1565c0 100%)', 
+                          bgcolor: 'primary.main',
                           color: 'white',
                           position: 'relative',
                           overflow: 'hidden',
                           '&:hover': {
-                            transform: 'translateY(-8px)',
-                            transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                            boxShadow: '0 20px 40px rgba(30, 136, 229, 0.4)'
-                          },
-                          '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            width: '100%',
-                            height: '100%',
-                            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-                            opacity: 0.3
+                            transform: 'translateY(-4px)',
+                            transition: 'all 0.3s ease-in-out',
+                            boxShadow: '0 12px 28px rgba(25, 118, 210, 0.25)'
                           }
                         }}>
                           <CardContent sx={{ position: 'relative', zIndex: 1, p: 3 }}>
                             <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                               <Assessment sx={{ fontSize: 40, opacity: 0.9 }} />
                               <Typography variant="h2" fontWeight={800} sx={{ color: 'white' }}>
-                                {stats?.sessions?.total || 0}
-                              </Typography>
-                            </Box>
+                              {stats?.sessions?.total || 0}
+                            </Typography>
+                          </Box>
                             <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 1 }}>
                               Tổng phiên điểm danh
                             </Typography>
-                            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
-                              📈 Phiên đã tạo thành công
-                            </Typography>
-                          </CardContent>
-                        </Card>
-                      </Grid>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <TrendingUp sx={{ fontSize: 16, opacity: 0.8 }} />
+                              <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
+                                Phiên đã tạo thành công
+                              </Typography>
+                            </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
 
                       <Grid item xs={12} sm={6} md={4}>
                         <Card sx={{ 
-                          background: 'linear-gradient(135deg, #43a047 0%, #2e7d32 100%)', 
+                          bgcolor: 'success.main',
                           color: 'white',
                           position: 'relative',
                           overflow: 'hidden',
                           '&:hover': {
-                            transform: 'translateY(-8px)',
-                            transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                            boxShadow: '0 20px 40px rgba(67, 160, 71, 0.4)'
-                          },
-                          '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            width: '100%',
-                            height: '100%',
-                            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M30 30l15-15v30z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-                            opacity: 0.3
+                            transform: 'translateY(-4px)',
+                            transition: 'all 0.3s ease-in-out',
+                            boxShadow: '0 12px 28px rgba(76, 175, 80, 0.25)'
                           }
                         }}>
                           <CardContent sx={{ position: 'relative', zIndex: 1, p: 3 }}>
@@ -1049,38 +1035,31 @@ export const TeacherDashboard: React.FC = () => {
                               <School sx={{ fontSize: 40, opacity: 0.9 }} />
                               <Typography variant="h2" fontWeight={800} sx={{ color: 'white' }}>
                                 {stats?.attendances?.total || 0}
-                              </Typography>
-                            </Box>
+                            </Typography>
+                          </Box>
                             <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 1 }}>
                               Tổng lượt điểm danh
                             </Typography>
-                            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
-                              ✅ Điểm danh thành công
-                            </Typography>
-                          </CardContent>
-                        </Card>
-                      </Grid>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <CheckCircle sx={{ fontSize: 16, opacity: 0.8 }} />
+                              <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
+                                Điểm danh thành công
+                              </Typography>
+                            </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
 
                       <Grid item xs={12} sm={6} md={4}>
                         <Card sx={{ 
-                          background: 'linear-gradient(135deg, #8e24aa 0%, #6a1b9a 100%)', 
+                          bgcolor: 'secondary.main',
                           color: 'white',
                           position: 'relative',
                           overflow: 'hidden',
                           '&:hover': {
-                            transform: 'translateY(-8px)',
-                            transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                            boxShadow: '0 20px 40px rgba(142, 36, 170, 0.4)'
-                          },
-                          '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            width: '100%',
-                            height: '100%',
-                            background: 'url("data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-                            opacity: 0.3
+                            transform: 'translateY(-4px)',
+                            transition: 'all 0.3s ease-in-out',
+                            boxShadow: '0 12px 28px rgba(156, 39, 176, 0.25)'
                           }
                         }}>
                           <CardContent sx={{ position: 'relative', zIndex: 1, p: 3 }}>
@@ -1088,17 +1067,20 @@ export const TeacherDashboard: React.FC = () => {
                               <People sx={{ fontSize: 40, opacity: 0.9 }} />
                               <Typography variant="h2" fontWeight={800} sx={{ color: 'white' }}>
                                 {stats?.students?.total || 0}
-                              </Typography>
-                            </Box>
+                            </Typography>
+                          </Box>
                             <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 1 }}>
                               Tổng sinh viên
                             </Typography>
-                            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
-                              👥 Sinh viên trong các lớp
-                            </Typography>
-                          </CardContent>
-                        </Card>
-                      </Grid>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Groups sx={{ fontSize: 16, opacity: 0.8 }} />
+                              <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
+                                Sinh viên trong các lớp
+                              </Typography>
+                            </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
                     </Grid>
                   </StaggerItem>
 
@@ -1106,11 +1088,14 @@ export const TeacherDashboard: React.FC = () => {
                   <StaggerItem>
                     <Card sx={{ mb: 4, borderRadius: 3, overflow: 'hidden' }}>
                       <CardContent sx={{ p: 4 }}>
-                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                          🚀 Thao tác nhanh
-                        </Typography>
+                        <Box display="flex" alignItems="center" gap={2} mb={3}>
+                          <Rocket color="primary" sx={{ fontSize: 28 }} />
+                          <Typography variant="h5" fontWeight={700}>
+                            Thao tác nhanh
+                          </Typography>
+                        </Box>
                         <Grid container spacing={3}>
-                          <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={3}>
                             <Button
                               fullWidth
                               variant="contained"
@@ -1119,11 +1104,11 @@ export const TeacherDashboard: React.FC = () => {
                               onClick={createSession}
                               sx={{
                                 py: 2,
-                                background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+                                bgcolor: 'error.main',
                                 '&:hover': {
-                                  background: 'linear-gradient(135deg, #ee5a52 0%, #ff6b6b 100%)',
+                                  bgcolor: 'error.dark',
                                   transform: 'translateY(-2px)',
-                                  boxShadow: '0 8px 25px rgba(255, 107, 107, 0.3)'
+                                  boxShadow: '0 8px 25px rgba(244, 67, 54, 0.3)'
                                 }
                               }}
                             >
@@ -1203,9 +1188,12 @@ export const TeacherDashboard: React.FC = () => {
                       <Grid item xs={12} md={8}>
                         <Card sx={{ borderRadius: 3, height: '100%' }}>
                           <CardContent sx={{ p: 4 }}>
-                            <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                              📊 Tổng quan hoạt động
-                            </Typography>
+                            <Box display="flex" alignItems="center" gap={2} mb={3}>
+                              <Analytics color="primary" sx={{ fontSize: 28 }} />
+                              <Typography variant="h5" fontWeight={700}>
+                                Tổng quan hoạt động
+                              </Typography>
+                            </Box>
                             <Grid container spacing={2}>
                               <Grid item xs={6}>
                                 <Box textAlign="center" p={2} sx={{ bgcolor: 'primary.50', borderRadius: 2 }}>
@@ -1214,8 +1202,8 @@ export const TeacherDashboard: React.FC = () => {
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary">
                                     Phiên đã tạo
-                                  </Typography>
-                                </Box>
+                            </Typography>
+                          </Box>
                               </Grid>
                               <Grid item xs={6}>
                                 <Box textAlign="center" p={2} sx={{ bgcolor: 'success.50', borderRadius: 2 }}>
@@ -1225,28 +1213,33 @@ export const TeacherDashboard: React.FC = () => {
                                   <Typography variant="body2" color="text.secondary">
                                     Lớp quản lý
                                   </Typography>
-                                </Box>
+                        </Box>
                               </Grid>
                             </Grid>
-                          </CardContent>
-                        </Card>
-                      </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
                       <Grid item xs={12} md={4}>
                         <Card sx={{ 
                           borderRadius: 3, 
                           height: '100%',
-                          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'
+                          bgcolor: 'warning.50',
+                          border: '1px solid',
+                          borderColor: 'warning.200'
                         }}>
                           <CardContent sx={{ p: 4, textAlign: 'center' }}>
-                            <Typography variant="h5" fontWeight={700} gutterBottom>
-                              💡 Mẹo
-                            </Typography>
+                            <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={2}>
+                              <LightbulbOutlined color="warning" sx={{ fontSize: 28 }} />
+                              <Typography variant="h5" fontWeight={700} color="warning.main">
+                                Mẹo
+                              </Typography>
+                            </Box>
                             <Typography variant="body1" sx={{ color: 'text.secondary' }}>
                               Sử dụng QR Code xoay để tăng cường bảo mật điểm danh!
                             </Typography>
                           </CardContent>
                         </Card>
-                      </Grid>
+                </Grid>
                     </Grid>
                   </StaggerItem>
                 </StaggerContainer>
