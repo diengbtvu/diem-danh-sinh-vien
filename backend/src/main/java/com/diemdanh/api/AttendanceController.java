@@ -120,9 +120,20 @@ public class AttendanceController {
         if (mssv != null) {
             List<AttendanceEntity> existingAttendances = attendanceRepository.findByMssvAndSessionId(mssv, sessionId);
             if (!existingAttendances.isEmpty()) {
-                log.warn("Duplicate attendance attempt detected: mssv={}, sessionId={}, existingRecords={}", 
+                log.info("Duplicate attendance attempt detected: mssv={}, sessionId={}, existingRecords={}", 
                     mssv, sessionId, existingAttendances.size());
-                throw new IllegalArgumentException("Sinh viên đã điểm danh cho phiên này rồi. Mỗi sinh viên chỉ được điểm danh một lần cho mỗi phiên học.");
+                
+                // Return response indicating duplicate without throwing exception
+                AttendanceEntity existingRecord = existingAttendances.get(0);
+                return AttendanceSubmitResponse.builder()
+                        .status("ALREADY_SUBMITTED")
+                        .mssv(mssv)
+                        .hoTen(student != null ? student.getHoTen() : null)
+                        .capturedAt(existingRecord.getCapturedAt().toString())
+                        .confidence(existingRecord.getFaceConfidence())
+                        .isDuplicate(true)
+                        .message("Bạn đã điểm danh rồi")
+                        .build();
             }
         }
 
@@ -188,6 +199,8 @@ public class AttendanceController {
                 .hoTen(student != null ? student.getHoTen() : null)
                 .capturedAt(Instant.now().toString())
                 .confidence(confidence)
+                .isDuplicate(false)
+                .message("Điểm danh thành công")
                 .build();
     }
 

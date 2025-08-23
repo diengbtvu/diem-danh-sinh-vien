@@ -337,7 +337,13 @@ export default function AttendPage() {
       setResult(json)
       setSubmitted(true) // Mark as submitted to prevent camera restart
       
-      // Show alert based on face recognition result
+      // Check for duplicate attendance first
+      if (json.isDuplicate === true) {
+        alert(`ℹ️ ${json.message || 'Bạn đã điểm danh rồi'}\nMSSV: ${json.mssv || 'Không xác định'}\nTên: ${json.hoTen || 'Không rõ'}\nThời gian điểm danh: ${json.capturedAt ? new Date(json.capturedAt).toLocaleString('vi-VN') : 'Không rõ'}`)
+        return // Exit early for duplicate case
+      }
+      
+      // Show alert based on face recognition result for new submissions
       console.log('🎯 Final faceResult for alert:', JSON.stringify(faceResult, null, 2))
       
       if (faceResult && faceResult.success && faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
