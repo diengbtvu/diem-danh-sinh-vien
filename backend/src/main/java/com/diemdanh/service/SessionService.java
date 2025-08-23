@@ -92,6 +92,9 @@ public class SessionService {
 
         // State for QR2 activation window (in-memory; can be externalized later)
         private final Map<String, ActivationState> activationState = new ConcurrentHashMap<>();
+        
+        // Track QR A (session token) usage to ensure single use
+        private final Map<String, QrAUsageState> qrAUsageState = new ConcurrentHashMap<>();
 
         public void activateQr2(String sessionId, int windowSeconds) {
             long now = Instant.now().toEpochMilli();
@@ -116,4 +119,42 @@ public class SessionService {
         private record ActivationState(long startedAtMs, long expiresAtMs) {}
 
         public record ActivationStatus(boolean active, long validForMs) {}
+        
+        // QR A usage tracking methods
+        public boolean isQrAUsed(String sessionId) {
+            var state = qrAUsageState.get(sessionId);
+            return state != null && state.used;
+        }
+        
+        public boolean markQrAAsUsed(String sessionId) {
+            // Returns true if successfully marked as used (first time)
+            // Returns false if already used
+            var existing = qrAUsageState.putIfAbsent(sessionId, new QrAUsageState(true, Instant.now().toEpochMilli()));
+            return existing == null; // true = first use, false = already used
+        }
+        
+        public boolean isQrAAccessAllowed(String sessionId) {
+            var qrAState = qrAUsageState.get(sessionId);
+            var activationStatus = getActivationStatus(sessionId);
+            
+            // QR A access is NOT allowed if:
+            // 1. QR A has been used AND QR B has been activated
+            if (qrAState != null && qrAState.used && activationStatus.active()) {
+                return false;
+            }
+            
+            return true; // Allow access otherwise
+        }
+        
+        public void resetQrAUsage(String sessionId) {
+            qrAUsageState.remove(sessionId);
+        }
+        
+        // Reset both QR A and QR B state for a session (admin function)
+        public void resetSession(String sessionId) {
+            resetActivation(sessionId);
+            resetQrAUsage(sessionId);
+        }
+        
+        private record QrAUsageState(boolean used, long usedAtMs) {}
 }

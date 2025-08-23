@@ -80,10 +80,10 @@ export default function AttendPage() {
       const sid = parseSessionIdFromSessionToken(sessionToken)
       console.log('Parsed session ID:', sid)
       if (sid) {
-        console.log('Calling activate-qr2 API for session:', sid)
-        fetch(`/api/sessions/${encodeURIComponent(sid)}/activate-qr2`, { method: 'POST' })
+        // First check if QR A access is allowed
+        console.log('Checking QR A access for session:', sid)
+        fetch(`/api/sessions/${encodeURIComponent(sid)}/qr-a-access`)
           .then(response => {
-            console.log('activate-qr2 response status:', response.status)
             if (response.status === 410) {
               setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
               return null
@@ -94,14 +94,51 @@ export default function AttendPage() {
             return response.json()
           })
           .then(data => {
+            if (data && !data.accessAllowed) {
+              setError(data.message || 'QR A đã được sử dụng. Hãy quét QR khác từ giảng viên.')
+              return
+            }
+            
+            // If access is allowed, proceed with QR2 activation
+            console.log('QR A access allowed, calling activate-qr2 API for session:', sid)
+            return fetch(`/api/sessions/${encodeURIComponent(sid)}/activate-qr2`, { method: 'POST' })
+          })
+          .then(response => {
+            if (!response) return null // Already handled above
+            console.log('activate-qr2 response status:', response.status)
+            if (response.status === 410) {
+              setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
+              return null
+            }
+            if (!response.ok) {
+              if (response.status === 400) {
+                // Handle the specific case where QR A was already used
+                response.text().then(errorText => {
+                  if (errorText.includes('QR A đã được sử dụng')) {
+                    setError('QR A đã được sử dụng. Hãy quét QR khác từ giảng viên.')
+                  } else {
+                    setError('Lỗi khi kích hoạt QR B. Vui lòng thử lại.')
+                  }
+                }).catch(() => {
+                  setError('QR A đã được sử dụng. Hãy quét QR khác từ giảng viên.')
+                })
+                return null
+              }
+              throw new Error(`HTTP ${response.status}`)
+            }
+            return response.json()
+          })
+          .then(data => {
             if (data) {
               console.log('activate-qr2 response data:', data)
             }
           })
           .catch(error => {
-            console.error('activate-qr2 error:', error)
+            console.error('QR access check or activate-qr2 error:', error)
             if (error.message.includes('Session has expired')) {
               setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
+            } else if (error.message.includes('QR A đã được sử dụng')) {
+              setError('QR A đã được sử dụng. Hãy quét QR khác từ giảng viên.')
             }
           })
       }
@@ -142,10 +179,10 @@ export default function AttendPage() {
         }
         
         const data = await response.json()
-        if (isActive && data.qr2Active && data.rotatingToken && !rotatingToken) {
-          console.log('QR B is now active from server, setting rotatingToken:', data.rotatingToken)
-          setRotatingToken(data.rotatingToken)
-          setCurrentStep(3)
+        // DO NOT automatically set rotatingToken - student must manually scan QR B
+        if (isActive && data.qr2Active && !rotatingToken) {
+          console.log('QR B is now active from server, but waiting for manual scan')
+          // QR B is active but we don't auto-populate the token - user must scan manually
         }
       } catch (error) {
         console.error('Error polling QR status:', error)

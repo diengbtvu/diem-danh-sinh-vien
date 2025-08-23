@@ -50,7 +50,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             requestPath.equals("/api/sessions/validate") ||
             requestPath.equals("/api/sessions/current") ||
             requestPath.matches("/api/sessions/.*/activate-qr2") ||
-            requestPath.matches("/api/sessions/.*/validate-qr");
+            requestPath.matches("/api/sessions/.*/validate-qr") ||
+            requestPath.matches("/api/sessions/.*/qr-a-access");
             
         log.info("JwtFilter: Path {} is public endpoint: {}", requestPath, isPublicEndpoint);
 

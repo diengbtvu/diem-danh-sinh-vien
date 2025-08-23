@@ -109,6 +109,14 @@ public class SessionController {
         var info = sessionService.get(sessionId);
         if (info == null) throw new IllegalArgumentException("Session not found");
         if (isSessionExpired(info)) throw new IllegalArgumentException("Session has expired");
+        
+        // Mark QR A as used - this prevents future access to QR A links
+        boolean firstUse = sessionService.markQrAAsUsed(sessionId);
+        if (!firstUse) {
+            // QR A has already been used - don't allow activation again
+            throw new IllegalArgumentException("QR A đã được sử dụng. Vui lòng quét QR khác từ giảng viên.");
+        }
+        
         sessionService.activateQr2(sessionId, actualWindowSeconds);
         long now = Instant.now().getEpochSecond();
         String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond());
@@ -189,6 +197,32 @@ public class SessionController {
             attendanceConfig.getMaxImageSizeMB(),
             attendanceConfig.getFrontendUrlTemplate()
         );
+    }
+
+    // Check if QR A access is allowed for a session
+    @GetMapping("/{sessionId}/qr-a-access")
+    public ResponseEntity<Map<String, Object>> checkQrAAccess(@PathVariable String sessionId) {
+        var info = sessionService.get(sessionId);
+        if (info == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        if (isSessionExpired(info)) {
+            return ResponseEntity.status(410).build(); // Gone - Session expired
+        }
+        
+        boolean accessAllowed = sessionService.isQrAAccessAllowed(sessionId);
+        boolean qrAUsed = sessionService.isQrAUsed(sessionId);
+        var activationStatus = sessionService.getActivationStatus(sessionId);
+        
+        Map<String, Object> response = Map.of(
+            "accessAllowed", accessAllowed,
+            "qrAUsed", qrAUsed,
+            "qr2Active", activationStatus.active(),
+            "message", accessAllowed ? "Truy cập được phép" : "QR A đã được sử dụng. Hãy quét QR khác từ giảng viên."
+        );
+        
+        return ResponseEntity.ok(response);
     }
 
     // Get list of available classes

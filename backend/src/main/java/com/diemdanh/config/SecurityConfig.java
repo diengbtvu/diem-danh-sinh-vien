@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/sessions/*/status").permitAll()
                 .requestMatchers("/api/sessions/*/activate-qr2").permitAll()
                 .requestMatchers("/api/sessions/*/validate-qr").permitAll()
+                .requestMatchers("/api/sessions/*/qr-a-access").permitAll()
                 .requestMatchers("/api/attendances").permitAll()
                 .requestMatchers("/api/attendances/**").permitAll()
                 .requestMatchers("/api/face-proxy/**").permitAll()
