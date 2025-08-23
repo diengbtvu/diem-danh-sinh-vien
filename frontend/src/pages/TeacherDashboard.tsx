@@ -216,6 +216,11 @@ export const TeacherDashboard: React.FC = () => {
   // Dialog states
   const [createClassDialog, setCreateClassDialog] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [addStudentDialog, setAddStudentDialog] = useState(false);
+  const [importCsvDialog, setImportCsvDialog] = useState(false);
+  const [editStudentDialog, setEditStudentDialog] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [createSessionDialog, setCreateSessionDialog] = useState(false);
 
   // QR Code states
   const [qrSessionId, setQrSessionId] = useState('');
@@ -475,6 +480,7 @@ export const TeacherDashboard: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         setSessionForm({});
+        setCreateSessionDialog(false);
         setPageS(0);
         fetchSessions();
         setSuccess(`Tạo phiên thành công: ${result.sessionId || 'Thành công'}`);
@@ -532,12 +538,90 @@ export const TeacherDashboard: React.FC = () => {
 
       if (response.ok) {
         setStudentForm({});
+        setAddStudentDialog(false);
         setPageStu(0);
         fetchStudents();
         setSuccess('Tạo sinh viên thành công');
       } else {
         const errorText = await response.text();
         setError(errorText || 'Lỗi tạo sinh viên');
+      }
+    } catch (error) {
+      setError('Lỗi kết nối');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditStudent = (student: Student) => {
+    setSelectedStudent(student);
+    setStudentForm(student);
+    setEditStudentDialog(true);
+  };
+
+  const updateStudent = async () => {
+    if (!selectedStudent || !studentForm.mssv || !studentForm.hoTen || !studentForm.maLop) {
+      setError('Vui lòng điền đầy đủ thông tin sinh viên');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let endpoint;
+      if (user?.role === 'GIANGVIEN') {
+        endpoint = buildApiUrl(`${API_CONFIG.ENDPOINTS.TEACHER.STUDENTS}/${selectedStudent.mssv}`);
+      } else {
+        endpoint = buildApiUrl(`${API_CONFIG.ENDPOINTS.ADMIN.STUDENTS}/${selectedStudent.mssv}`);
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify(studentForm)
+      });
+
+      if (response.ok) {
+        setStudentForm({});
+        setSelectedStudent(null);
+        setEditStudentDialog(false);
+        fetchStudents();
+        setSuccess('Cập nhật sinh viên thành công');
+      } else {
+        const errorText = await response.text();
+        setError(errorText || 'Lỗi cập nhật sinh viên');
+      }
+    } catch (error) {
+      setError('Lỗi kết nối');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteStudent = async (mssv: string) => {
+    if (!confirm('Bạn có chắc muốn xóa sinh viên này?')) return;
+
+    setLoading(true);
+    try {
+      let endpoint;
+      if (user?.role === 'GIANGVIEN') {
+        endpoint = buildApiUrl(`${API_CONFIG.ENDPOINTS.TEACHER.STUDENTS}/${mssv}`);
+      } else {
+        endpoint = buildApiUrl(`${API_CONFIG.ENDPOINTS.ADMIN.STUDENTS}/${mssv}`);
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: getAuthHeader()
+      });
+
+      if (response.ok) {
+        fetchStudents();
+        setSuccess('Xóa sinh viên thành công');
+      } else {
+        setError('Lỗi xóa sinh viên');
       }
     } catch (error) {
       setError('Lỗi kết nối');
@@ -574,6 +658,7 @@ export const TeacherDashboard: React.FC = () => {
 
       if (response.ok) {
         setCsvText('');
+        setImportCsvDialog(false);
         setPageStu(0);
         fetchStudents();
         setSuccess('Import sinh viên thành công');
@@ -1251,108 +1336,136 @@ export const TeacherDashboard: React.FC = () => {
           {tab === 'sessions' && (
             <Fade in={tab === 'sessions'}>
               <Box>
+                {/* Header with Actions */}
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                  <Typography variant="h5">
-                    Phiên điểm danh
-                  </Typography>
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <School color="primary" sx={{ fontSize: 28 }} />
+                    <Typography variant="h5" fontWeight={700}>
+                      Quản lý phiên điểm danh
+                    </Typography>
+                  </Box>
                   <Button
                     variant="contained"
                     startIcon={<Add />}
-                    onClick={createSession}
+                    onClick={() => setCreateSessionDialog(true)}
                   >
                     Tạo phiên mới
                   </Button>
                 </Box>
 
+                {/* Search and Filter Section */}
+                <Card sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} md={8}>
+                        <TextField
+                          fullWidth
+                          label="Tìm kiếm phiên điểm danh"
+                          placeholder="Nhập Session ID, mã lớp hoặc thời gian..."
+                          value={sessionSearch}
+                          onChange={(e) => setSessionSearch(e.target.value)}
+                          InputProps={{
+                            startAdornment: (
+                              <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+                                <School color="action" />
+                              </Box>
+                            )
+                          }}
+                        />
+                      </Grid>
+                      {user?.role === 'GIANGVIEN' && teacherClasses.length > 0 && (
+                        <Grid item xs={12} md={4}>
+                          <FormControl fullWidth>
+                            <InputLabel>Lọc theo lớp</InputLabel>
+                            <Select
+                              value={sessionSearch}
+                              onChange={(e) => setSessionSearch(e.target.value)}
+                              label="Lọc theo lớp"
+                            >
+                              <SelectMenuItem value="">Tất cả lớp</SelectMenuItem>
+                              {teacherClasses.map((className) => (
+                                <SelectMenuItem key={className} value={className}>
+                                  {className}
+                                </SelectMenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* Sessions Table */}
                 <Card>
                   <CardContent>
-                    <Stack spacing={2} mb={2}>
-                      <TextField
-                        label="Tìm kiếm phiên"
-                        value={sessionSearch}
-                        onChange={(e) => setSessionSearch(e.target.value)}
-                        size="small"
-                      />
-                      <Stack direction="row" spacing={2}>
-                        {user?.role === 'GIANGVIEN' ? (
-                          <>
-                            <FormControl size="small" sx={{ minWidth: 200 }}>
-                              <InputLabel>Chọn lớp</InputLabel>
-                              <Select
-                                value={sessionForm.maLop || ''}
-                                onChange={(e) => setSessionForm({...sessionForm, maLop: e.target.value})}
-                                label="Chọn lớp"
-                              >
-                                {teacherClasses.map((className) => (
-                                  <SelectMenuItem key={className} value={className}>
-                                    {className}
-                                  </SelectMenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                            <TextField
-                              label="Thời gian (phút)"
-                              type="number"
-                              value={sessionForm.durationMinutes || 30}
-                              onChange={(e) => setSessionForm({...sessionForm, durationMinutes: Number(e.target.value)})}
-                              size="small"
-                              inputProps={{ min: 5, max: 180 }}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <TextField
-                              label="Mã lớp"
-                              value={sessionForm.maLop || ''}
-                              onChange={(e) => setSessionForm({...sessionForm, maLop: e.target.value})}
-                              size="small"
-                            />
-                            <TextField
-                              label="Thời gian xoay QR (giây)"
-                              type="number"
-                              value={sessionForm.rotateSeconds || 30}
-                              onChange={(e) => setSessionForm({...sessionForm, rotateSeconds: Number(e.target.value)})}
-                              size="small"
-                            />
-                          </>
-                        )}
-                      </Stack>
-                    </Stack>
-
                     {sessions?.content && sessions.content.length > 0 ? (
                       <>
                         <TableContainer>
                           <Table>
                             <TableHead>
                               <TableRow>
-                                <TableCell>Session ID</TableCell>
-                                <TableCell>Lớp học</TableCell>
-                                <TableCell>Thời gian bắt đầu</TableCell>
-                                <TableCell>Thời gian kết thúc</TableCell>
-                                <TableCell>Trạng thái</TableCell>
-                                <TableCell>Thao tác</TableCell>
+                                <TableCell><strong>Session ID</strong></TableCell>
+                                <TableCell><strong>Lớp học</strong></TableCell>
+                                <TableCell><strong>Thời gian bắt đầu</strong></TableCell>
+                                <TableCell><strong>Thời gian kết thúc</strong></TableCell>
+                                <TableCell align="center"><strong>Trạng thái</strong></TableCell>
+                                <TableCell align="center"><strong>Thao tác</strong></TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {sessions.content.map((session) => (
-                                <TableRow key={session.sessionId}>
-                                  <TableCell>{session.sessionId}</TableCell>
-                                  <TableCell>{session.maLop}</TableCell>
+                                <TableRow 
+                                  key={session.sessionId}
+                                  sx={{ 
+                                    '&:hover': { 
+                                      bgcolor: 'action.hover',
+                                      cursor: 'pointer'
+                                    } 
+                                  }}
+                                >
                                   <TableCell>
-                                    {new Date(session.startAt).toLocaleString('vi-VN')}
+                                    <Typography variant="body2" fontFamily="monospace" sx={{ 
+                                      fontSize: '0.75rem',
+                                      bgcolor: 'grey.100',
+                                      p: 0.5,
+                                      borderRadius: 1,
+                                      display: 'inline-block',
+                                      maxWidth: 120,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis'
+                                    }}>
+                                      {session.sessionId}
+                                    </Typography>
                                   </TableCell>
                                   <TableCell>
-                                    {new Date(session.endAt).toLocaleString('vi-VN')}
+                                    <Chip 
+                                      label={session.maLop} 
+                                      size="small" 
+                                      color="primary" 
+                                      variant="outlined"
+                                    />
                                   </TableCell>
                                   <TableCell>
+                                    <Typography variant="body2">
+                                      {new Date(session.startAt).toLocaleString('vi-VN')}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body2">
+                                      {new Date(session.endAt).toLocaleString('vi-VN')}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell align="center">
                                     <Chip
                                       label={session.isActive ? 'Đang hoạt động' : 'Đã kết thúc'}
                                       color={session.isActive ? 'success' : 'default'}
                                       size="small"
+                                      sx={{ minWidth: 100 }}
                                     />
                                   </TableCell>
-                                  <TableCell>
-                                    <Stack direction="row" spacing={1}>
+                                  <TableCell align="center">
+                                    <Stack direction="row" spacing={1} justifyContent="center">
                                       <IconButton
                                         onClick={() => handleViewSession(session.sessionId)}
                                         color="primary"
@@ -1388,16 +1501,24 @@ export const TeacherDashboard: React.FC = () => {
                         />
                       </>
                     ) : (
-                      <Box textAlign="center" py={4}>
+                      <Box textAlign="center" py={8}>
+                        <School sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                         <Typography variant="h6" color="textSecondary" gutterBottom>
                           Chưa có phiên điểm danh nào
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography variant="body2" color="textSecondary" mb={3}>
                           {user?.role === 'GIANGVIEN'
                             ? 'Hãy tạo phiên điểm danh mới cho lớp của bạn'
                             : 'Hãy tạo phiên điểm danh mới'
                           }
                         </Typography>
+                        <Button
+                          variant="contained"
+                          startIcon={<Add />}
+                          onClick={() => setCreateSessionDialog(true)}
+                        >
+                          Tạo phiên mới
+                        </Button>
                       </Box>
                     )}
                   </CardContent>
@@ -1410,49 +1531,62 @@ export const TeacherDashboard: React.FC = () => {
           {tab === 'students' && (
             <Fade in={tab === 'students'}>
               <Box>
+                {/* Header with Actions */}
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                  <Typography variant="h5">
-                    Sinh viên
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={createStudent}
-                  >
-                    Tạo sinh viên
-                  </Button>
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <People color="primary" sx={{ fontSize: 28 }} />
+                    <Typography variant="h5" fontWeight={700}>
+                      Quản lý sinh viên
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<Upload />}
+                      onClick={() => setImportCsvDialog(true)}
+                    >
+                      Import CSV
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => setAddStudentDialog(true)}
+                    >
+                      Thêm sinh viên
+                    </Button>
+                  </Stack>
                 </Box>
 
-                <Card>
+                {/* Search and Filter Section */}
+                <Card sx={{ mb: 3 }}>
                   <CardContent>
-                    <Stack spacing={2} mb={2}>
-                      <TextField
-                        label="Tìm kiếm sinh viên"
-                        value={studentSearch}
-                        onChange={(e) => setStudentSearch(e.target.value)}
-                        size="small"
-                      />
-                      <Stack direction="row" spacing={2}>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} md={6}>
                         <TextField
-                          label="MSSV"
-                          value={studentForm.mssv || ''}
-                          onChange={(e) => setStudentForm({...studentForm, mssv: e.target.value})}
-                          size="small"
+                          fullWidth
+                          label="Tìm kiếm sinh viên"
+                          placeholder="Nhập MSSV, họ tên hoặc mã lớp..."
+                          value={studentSearch}
+                          onChange={(e) => setStudentSearch(e.target.value)}
+                          InputProps={{
+                            startAdornment: (
+                              <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+                                <Person color="action" />
+                              </Box>
+                            )
+                          }}
                         />
-                        <TextField
-                          label="Họ tên"
-                          value={studentForm.hoTen || ''}
-                          onChange={(e) => setStudentForm({...studentForm, hoTen: e.target.value})}
-                          size="small"
-                        />
-                        {user?.role === 'GIANGVIEN' ? (
-                          <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <InputLabel>Mã lớp</InputLabel>
+                      </Grid>
+                      {user?.role === 'GIANGVIEN' && teacherClasses.length > 0 && (
+                        <Grid item xs={12} md={6}>
+                          <FormControl fullWidth>
+                            <InputLabel>Lọc theo lớp</InputLabel>
                             <Select
-                              value={studentForm.maLop || ''}
-                              onChange={(e) => setStudentForm({...studentForm, maLop: e.target.value})}
-                              label="Mã lớp"
+                              value={studentSearch}
+                              onChange={(e) => setStudentSearch(e.target.value)}
+                              label="Lọc theo lớp"
                             >
+                              <SelectMenuItem value="">Tất cả lớp</SelectMenuItem>
                               {teacherClasses.map((className) => (
                                 <SelectMenuItem key={className} value={className}>
                                   {className}
@@ -1460,74 +1594,76 @@ export const TeacherDashboard: React.FC = () => {
                               ))}
                             </Select>
                           </FormControl>
-                        ) : (
-                          <TextField
-                            label="Mã lớp"
-                            value={studentForm.maLop || ''}
-                            onChange={(e) => setStudentForm({...studentForm, maLop: e.target.value})}
-                            size="small"
-                          />
-                        )}
-                      </Stack>
-                    </Stack>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </CardContent>
+                </Card>
 
-                    {/* CSV Import */}
-                    <Box mb={3}>
-                      <Typography variant="h6" gutterBottom>
-                        Import CSV
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary" gutterBottom>
-                        {user?.role === 'GIANGVIEN'
-                          ? 'Nhập danh sách sinh viên cho các lớp bạn quản lý. Định dạng: MSSV,Họ tên,Mã lớp'
-                          : 'Nhập danh sách sinh viên. Định dạng: MSSV,Họ tên,Mã lớp'
-                        }
-                      </Typography>
-                      <TextField
-                        multiline
-                        rows={4}
-                        fullWidth
-                        placeholder={user?.role === 'GIANGVIEN'
-                          ? `20210001,Nguyễn Văn A,${teacherClasses[0] || 'IT4409'}\n20210002,Trần Thị B,${teacherClasses[0] || 'IT4409'}`
-                          : 'MSSV,Họ tên,Mã lớp\n20210001,Nguyễn Văn A,IT4409\n20210002,Trần Thị B,IT4409'
-                        }
-                        value={csvText}
-                        onChange={(e) => setCsvText(e.target.value)}
-                        sx={{ mb: 2 }}
-                      />
-                      <Stack direction="row" spacing={2}>
-                        <Button
-                          variant="outlined"
-                          startIcon={<Upload />}
-                          onClick={importStudents}
-                          disabled={!csvText.trim()}
-                        >
-                          Import CSV
-                        </Button>
-                        {user?.role === 'GIANGVIEN' && teacherClasses.length > 0 && (
-                          <Typography variant="caption" color="textSecondary" sx={{ alignSelf: 'center' }}>
-                            Lớp của bạn: {teacherClasses.join(', ')}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </Box>
-
+                {/* Students Table */}
+                <Card>
+                  <CardContent>
                     {students?.content && students.content.length > 0 ? (
                       <>
                         <TableContainer>
                           <Table>
                             <TableHead>
                               <TableRow>
-                                <TableCell>MSSV</TableCell>
-                                <TableCell>Họ tên</TableCell>
-                                <TableCell>Mã lớp</TableCell>
+                                <TableCell><strong>MSSV</strong></TableCell>
+                                <TableCell><strong>Họ và tên</strong></TableCell>
+                                <TableCell><strong>Mã lớp</strong></TableCell>
+                                <TableCell align="center"><strong>Thao tác</strong></TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {students.content.map((student) => (
-                                <TableRow key={student.mssv}>
-                                  <TableCell>{student.mssv}</TableCell>
-                                  <TableCell>{student.hoTen}</TableCell>
-                                  <TableCell>{student.maLop}</TableCell>
+                                <TableRow 
+                                  key={student.mssv}
+                                  sx={{ 
+                                    '&:hover': { 
+                                      bgcolor: 'action.hover',
+                                      cursor: 'pointer'
+                                    } 
+                                  }}
+                                >
+                                  <TableCell>
+                                    <Typography variant="body2" fontWeight={600}>
+                                      {student.mssv}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body1">
+                                      {student.hoTen}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Chip 
+                                      label={student.maLop} 
+                                      size="small" 
+                                      color="primary" 
+                                      variant="outlined"
+                                    />
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <Stack direction="row" spacing={1} justifyContent="center">
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => handleEditStudent(student)}
+                                        color="primary"
+                                        title="Chỉnh sửa"
+                                      >
+                                        <Edit />
+                                      </IconButton>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => deleteStudent(student.mssv)}
+                                        color="error"
+                                        title="Xóa"
+                                      >
+                                        <Delete />
+                                      </IconButton>
+                                    </Stack>
+                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -1543,13 +1679,33 @@ export const TeacherDashboard: React.FC = () => {
                         />
                       </>
                     ) : (
-                      <Box textAlign="center" py={4}>
+                      <Box textAlign="center" py={8}>
+                        <People sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                         <Typography variant="h6" color="textSecondary" gutterBottom>
                           {user?.role === 'GIANGVIEN'
                             ? 'Chưa có sinh viên nào trong các lớp của bạn'
                             : 'Chưa có sinh viên nào'
                           }
                         </Typography>
+                        <Typography variant="body2" color="textSecondary" mb={3}>
+                          Hãy thêm sinh viên mới hoặc import từ file CSV
+                        </Typography>
+                        <Stack direction="row" spacing={2} justifyContent="center">
+                          <Button
+                            variant="outlined"
+                            startIcon={<Upload />}
+                            onClick={() => setImportCsvDialog(true)}
+                          >
+                            Import CSV
+                          </Button>
+                          <Button
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => setAddStudentDialog(true)}
+                          >
+                            Thêm sinh viên
+                          </Button>
+                        </Stack>
                       </Box>
                     )}
                   </CardContent>
@@ -2103,6 +2259,345 @@ export const TeacherDashboard: React.FC = () => {
           </Paper>
         </Fade>
       )}
+
+      {/* Create Session Dialog */}
+      <Dialog
+        open={createSessionDialog}
+        onClose={() => {
+          setCreateSessionDialog(false);
+          setSessionForm({});
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Add color="primary" />
+            <Typography variant="h6" fontWeight={600}>
+              Tạo phiên điểm danh mới
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            {user?.role === 'GIANGVIEN' ? (
+              <>
+                <FormControl fullWidth required>
+                  <InputLabel>Chọn lớp</InputLabel>
+                  <Select
+                    value={sessionForm.maLop || ''}
+                    onChange={(e) => setSessionForm({...sessionForm, maLop: e.target.value})}
+                    label="Chọn lớp"
+                  >
+                    {teacherClasses.map((className) => (
+                      <SelectMenuItem key={className} value={className}>
+                        {className}
+                      </SelectMenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  label="Thời gian (phút)"
+                  type="number"
+                  value={sessionForm.durationMinutes || 30}
+                  onChange={(e) => setSessionForm({...sessionForm, durationMinutes: Number(e.target.value)})}
+                  required
+                  inputProps={{ min: 5, max: 180 }}
+                  helperText="Thời gian diễn ra phiên điểm danh (5-180 phút)"
+                  fullWidth
+                />
+              </>
+            ) : (
+              <>
+                <TextField
+                  label="Mã lớp"
+                  value={sessionForm.maLop || ''}
+                  onChange={(e) => setSessionForm({...sessionForm, maLop: e.target.value})}
+                  required
+                  placeholder="Ví dụ: IT4409"
+                  fullWidth
+                />
+                <TextField
+                  label="Thời gian xoay QR (giây)"
+                  type="number"
+                  value={sessionForm.rotateSeconds || 30}
+                  onChange={(e) => setSessionForm({...sessionForm, rotateSeconds: Number(e.target.value)})}
+                  required
+                  inputProps={{ min: 10, max: 300 }}
+                  helperText="Thời gian xoay QR Code (10-300 giây)"
+                  fullWidth
+                />
+              </>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => {
+              setCreateSessionDialog(false);
+              setSessionForm({});
+            }}
+            disabled={loading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={createSession}
+            variant="contained"
+            disabled={loading || !sessionForm.maLop || (user?.role === 'GIANGVIEN' && !sessionForm.durationMinutes) || (user?.role === 'ADMIN' && !sessionForm.rotateSeconds)}
+            startIcon={loading ? <></> : <Add />}
+          >
+            {loading ? 'Đang tạo...' : 'Tạo phiên'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Student Dialog */}
+      <Dialog
+        open={addStudentDialog}
+        onClose={() => {
+          setAddStudentDialog(false);
+          setStudentForm({});
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Add color="primary" />
+            <Typography variant="h6" fontWeight={600}>
+              Thêm sinh viên mới
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <TextField
+              label="MSSV"
+              value={studentForm.mssv || ''}
+              onChange={(e) => setStudentForm({...studentForm, mssv: e.target.value})}
+              required
+              placeholder="Ví dụ: 20210001"
+              helperText="Mã số sinh viên phải là duy nhất"
+              fullWidth
+            />
+            <TextField
+              label="Họ và tên"
+              value={studentForm.hoTen || ''}
+              onChange={(e) => setStudentForm({...studentForm, hoTen: e.target.value})}
+              required
+              placeholder="Ví dụ: Nguyễn Văn A"
+              fullWidth
+            />
+            {user?.role === 'GIANGVIEN' ? (
+              <FormControl fullWidth required>
+                <InputLabel>Mã lớp</InputLabel>
+                <Select
+                  value={studentForm.maLop || ''}
+                  onChange={(e) => setStudentForm({...studentForm, maLop: e.target.value})}
+                  label="Mã lớp"
+                >
+                  {teacherClasses.map((className) => (
+                    <SelectMenuItem key={className} value={className}>
+                      {className}
+                    </SelectMenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <TextField
+                label="Mã lớp"
+                value={studentForm.maLop || ''}
+                onChange={(e) => setStudentForm({...studentForm, maLop: e.target.value})}
+                required
+                placeholder="Ví dụ: IT4409"
+                fullWidth
+              />
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => {
+              setAddStudentDialog(false);
+              setStudentForm({});
+            }}
+            disabled={loading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={createStudent}
+            variant="contained"
+            disabled={loading || !studentForm.mssv || !studentForm.hoTen || !studentForm.maLop}
+            startIcon={loading ? <></> : <Add />}
+          >
+            {loading ? 'Đang thêm...' : 'Thêm sinh viên'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Student Dialog */}
+      <Dialog
+        open={editStudentDialog}
+        onClose={() => {
+          setEditStudentDialog(false);
+          setSelectedStudent(null);
+          setStudentForm({});
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Edit color="primary" />
+            <Typography variant="h6" fontWeight={600}>
+              Chỉnh sửa thông tin sinh viên
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <TextField
+              label="MSSV"
+              value={studentForm.mssv || ''}
+              onChange={(e) => setStudentForm({...studentForm, mssv: e.target.value})}
+              required
+              disabled
+              fullWidth
+              helperText="MSSV không thể thay đổi"
+            />
+            <TextField
+              label="Họ và tên"
+              value={studentForm.hoTen || ''}
+              onChange={(e) => setStudentForm({...studentForm, hoTen: e.target.value})}
+              required
+              placeholder="Ví dụ: Nguyễn Văn A"
+              fullWidth
+            />
+            {user?.role === 'GIANGVIEN' ? (
+              <FormControl fullWidth required>
+                <InputLabel>Mã lớp</InputLabel>
+                <Select
+                  value={studentForm.maLop || ''}
+                  onChange={(e) => setStudentForm({...studentForm, maLop: e.target.value})}
+                  label="Mã lớp"
+                >
+                  {teacherClasses.map((className) => (
+                    <SelectMenuItem key={className} value={className}>
+                      {className}
+                    </SelectMenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <TextField
+                label="Mã lớp"
+                value={studentForm.maLop || ''}
+                onChange={(e) => setStudentForm({...studentForm, maLop: e.target.value})}
+                required
+                placeholder="Ví dụ: IT4409"
+                fullWidth
+              />
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => {
+              setEditStudentDialog(false);
+              setSelectedStudent(null);
+              setStudentForm({});
+            }}
+            disabled={loading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={updateStudent}
+            variant="contained"
+            disabled={loading || !studentForm.hoTen || !studentForm.maLop}
+            startIcon={loading ? <></> : <Edit />}
+          >
+            {loading ? 'Đang cập nhật...' : 'Cập nhật'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Import CSV Dialog */}
+      <Dialog
+        open={importCsvDialog}
+        onClose={() => {
+          setImportCsvDialog(false);
+          setCsvText('');
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Upload color="primary" />
+            <Typography variant="h6" fontWeight={600}>
+              Import danh sách sinh viên từ CSV
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Box mb={3}>
+            <Typography variant="body1" gutterBottom>
+              Hướng dẫn định dạng CSV:
+            </Typography>
+            <Box p={2} bgcolor="grey.50" borderRadius={1} mb={2}>
+              <Typography variant="body2" fontFamily="monospace">
+                MSSV,Họ tên,Mã lớp
+              </Typography>
+              <Typography variant="body2" fontFamily="monospace">
+                20210001,Nguyễn Văn A,{teacherClasses[0] || 'IT4409'}
+              </Typography>
+              <Typography variant="body2" fontFamily="monospace">
+                20210002,Trần Thị B,{teacherClasses[0] || 'IT4409'}
+              </Typography>
+            </Box>
+            {user?.role === 'GIANGVIEN' && teacherClasses.length > 0 && (
+              <Box p={2} bgcolor="info.50" borderRadius={1} mb={2}>
+                <Typography variant="body2" color="info.main" fontWeight={600}>
+                  Lớp của bạn: {teacherClasses.join(', ')}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          
+          <TextField
+            label="Dữ liệu CSV"
+            multiline
+            rows={8}
+            fullWidth
+            placeholder="Dán dữ liệu CSV vào đây..."
+            value={csvText}
+            onChange={(e) => setCsvText(e.target.value)}
+            helperText="Mỗi dòng chứa thông tin của một sinh viên"
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => {
+              setImportCsvDialog(false);
+              setCsvText('');
+            }}
+            disabled={loading}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={importStudents}
+            variant="contained"
+            disabled={loading || !csvText.trim()}
+            startIcon={loading ? <></> : <Upload />}
+          >
+            {loading ? 'Đang import...' : 'Import CSV'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Create Class Dialog */}
       <Dialog
