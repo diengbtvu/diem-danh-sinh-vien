@@ -44,6 +44,10 @@ public interface SessionRepository extends JpaRepository<SessionEntity, String> 
 
     long countByCreatedByUsernameAndEndAtAfter(String username, Instant endAt);
 
+    // Find sessionIds for sessions created by username
+    @Query("SELECT s.sessionId FROM SessionEntity s WHERE s.createdBy.username = :username")
+    List<String> findSessionIdsByCreatedByUsername(@Param("username") String username);
+
     // Find specific session by ID and verify ownership
     @Query("SELECT s FROM SessionEntity s WHERE s.sessionId = :sessionId AND s.createdBy.username = :username")
     SessionEntity findBySessionIdAndCreatedByUsername(@Param("sessionId") String sessionId, @Param("username") String username);

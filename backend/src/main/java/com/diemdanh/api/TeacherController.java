@@ -228,11 +228,17 @@ public class TeacherController {
         long totalStudents = teacherClasses.isEmpty() ? 0 : 
             studentRepository.countByMaLopIn(teacherClasses);
 
+        // Get total attendances for all sessions created by this teacher
+        List<String> teacherSessionIds = sessionRepository.findSessionIdsByCreatedByUsername(username);
+        long totalAttendances = teacherSessionIds.isEmpty() ? 0 : 
+            attendanceRepository.countBySessionIdIn(teacherSessionIds);
+
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalSessions", totalSessions);
         stats.put("activeSessions", activeSessions);
         stats.put("totalStudents", totalStudents);
         stats.put("totalClasses", teacherClasses.size());
+        stats.put("totalAttendances", totalAttendances);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);

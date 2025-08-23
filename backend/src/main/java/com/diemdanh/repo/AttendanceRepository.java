@@ -22,6 +22,7 @@ public interface AttendanceRepository extends JpaRepository<AttendanceEntity, UU
     long countBySessionIdAndStatus(String sessionId, AttendanceEntity.Status status);
     long countBySessionId(String sessionId);
     long countByMssv(String mssv);
+    long countBySessionIdIn(List<String> sessionIds);
 
     @Query("SELECT a FROM AttendanceEntity a WHERE a.sessionId = :sessionId AND a.capturedAt BETWEEN :start AND :end ORDER BY a.capturedAt DESC")
     List<AttendanceEntity> findBySessionIdAndDateRange(@Param("sessionId") String sessionId,
