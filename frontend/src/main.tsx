@@ -44,6 +44,7 @@ function App() {
           },
           '.MuiToolbar-root': {
             borderBottom: 'none !important',
+            borderRadius: '0 !important',
           }
         }}
       />

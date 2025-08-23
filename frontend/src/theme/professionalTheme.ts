@@ -274,6 +274,15 @@ export const professionalTheme = createTheme({
           borderLeft: 'none !important',
           borderRight: 'none !important',
           outline: 'none !important',
+          borderRadius: '0 !important',
+        },
+      },
+    },
+    MuiToolbar: {
+      styleOverrides: {
+        root: {
+          borderRadius: '0 !important',
+          borderBottom: 'none !important',
         },
       },
     },
