@@ -122,17 +122,7 @@ interface Student {
   maLop: string;
 }
 
-interface User {
-  id: number;
-  username: string;
-  hoTen: string;
-  email: string;
-  role: 'ADMIN' | 'GIANGVIEN';
-  khoa?: string;
-  boMon?: string;
-  isActive: boolean;
-  lastLoginAt?: string;
-}
+
 
 interface DashboardStats {
   users: {
@@ -174,12 +164,11 @@ export const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   // Tab state
-  const [tab, setTab] = useState<'dashboard' | 'sessions' | 'students' | 'classes' | 'users'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'sessions' | 'students' | 'classes'>('dashboard');
 
   // Data states
   const [sessions, setSessions] = useState<Page<Session> | null>(null);
   const [students, setStudents] = useState<Page<Student> | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [classes, setClasses] = useState<Page<ClassInfo> | null>(null);
   const [teacherClasses, setTeacherClasses] = useState<string[]>([]);
@@ -209,7 +198,6 @@ export const TeacherDashboard: React.FC = () => {
   // Create session states
   const [sessionForm, setSessionForm] = useState<any>({});
   const [studentForm, setStudentForm] = useState<any>({});
-  const [userForm, setUserForm] = useState<any>({});
   const [classForm, setClassForm] = useState<any>({});
 
   // Edit states
@@ -392,12 +380,13 @@ export const TeacherDashboard: React.FC = () => {
         });
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
+          console.log('Teacher stats received:', statsData);
           // Convert teacher stats to dashboard format
           setStats({
             users: { total: 1, active: 1, admins: 0, giangVien: 1 },
-            sessions: { total: statsData.totalSessions || 0 },
-            students: { total: statsData.totalStudents || 0 },
-            attendances: { total: statsData.totalAttendances || 0 }
+            sessions: { total: statsData.stats?.totalSessions || 0 },
+            students: { total: statsData.stats?.totalStudents || 0 },
+            attendances: { total: statsData.stats?.totalAttendances || 0 }
           });
         } else {
           console.error('Teacher stats API failed:', statsResponse.status, statsResponse.statusText);
@@ -409,7 +398,7 @@ export const TeacherDashboard: React.FC = () => {
             attendances: { total: 0 }
           });
         }
-        setUsers([]);
+
 
         // Load teacher classes
         await loadTeacherClasses();
@@ -426,17 +415,7 @@ export const TeacherDashboard: React.FC = () => {
           setError(`Lỗi tải thống kê: ${statsResponse.status}`);
         }
 
-        // Load users for admin
-        const usersResponse = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.USERS), {
-          headers: getAuthHeader()
-        });
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json();
-          setUsers(usersData.data);
-        } else {
-          console.error('Users API failed:', usersResponse.status, usersResponse.statusText);
-          setError(`Lỗi tải người dùng: ${usersResponse.status}`);
-        }
+        // Admin users management removed from teacher dashboard
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -734,10 +713,8 @@ export const TeacherDashboard: React.FC = () => {
       fetchStudents();
     } else if (tab === 'classes') {
       fetchClasses();
-    } else if (tab === 'users') {
-      loadDashboardData(); // Load users
     }
-  }, [tab, user, fetchSessions, fetchStudents, fetchClasses, loadDashboardData]);
+  }, [tab, user, fetchSessions, fetchStudents, fetchClasses]);
 
   // QR polling effect
   useEffect(() => {
@@ -895,15 +872,7 @@ export const TeacherDashboard: React.FC = () => {
                 sx={{ textTransform: 'none' }}
               />
             )}
-            {user?.role === 'ADMIN' && (
-              <Tab
-                value="users"
-                label="Người dùng"
-                icon={<Person />}
-                iconPosition="start"
-                sx={{ textTransform: 'none' }}
-              />
-            )}
+
           </Tabs>
         </Paper>
 
@@ -912,109 +881,375 @@ export const TeacherDashboard: React.FC = () => {
           {tab === 'dashboard' && (
             <Fade in={tab === 'dashboard'}>
               <Box>
-                {/* Welcome Section */}
-                <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                  <CardContent>
-                    <Typography variant="h4" fontWeight={600} gutterBottom>
-                      Chào mừng, {user?.hoTen}!
-                    </Typography>
-                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      {user?.role === 'ADMIN' ? 'Quản lý hệ thống điểm danh' : 'Quản lý các phiên điểm danh của bạn'}
-                    </Typography>
-                    <Box mt={2}>
-                      <Chip
-                        label={`${user?.khoa}`}
-                        sx={{
-                          bgcolor: 'rgba(255,255,255,0.2)',
+                {/* Hero Welcome Section */}
+                <StaggerContainer>
+                  <StaggerItem>
+                    <Card sx={{ 
+                      mb: 4, 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      minHeight: 200,
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: -50,
+                        right: -50,
+                        width: 200,
+                        height: 200,
+                        background: 'rgba(255,255,255,0.1)',
+                        borderRadius: '50%',
+                        zIndex: 1
+                      },
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        bottom: -30,
+                        left: -30,
+                        width: 150,
+                        height: 150,
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '50%',
+                        zIndex: 1
+                      }
+                    }}>
+                      <CardContent sx={{ position: 'relative', zIndex: 2, p: 4 }}>
+                        <Grid container spacing={3} alignItems="center">
+                          <Grid item xs={12} md={8}>
+                            <Box>
+                              <Typography variant="h3" fontWeight={700} gutterBottom sx={{ mb: 1 }}>
+                                Xin chào, {user?.hoTen}! 👋
+                              </Typography>
+                              <Typography variant="h6" sx={{ opacity: 0.9, mb: 2 }}>
+                                {user?.role === 'ADMIN' ? 'Quản lý hệ thống điểm danh' : 'Chào mừng bạn quay trở lại với hệ thống điểm danh'}
+                              </Typography>
+                              <Box display="flex" gap={1} flexWrap="wrap">
+                                <Chip
+                                  label={`📚 ${user?.khoa}`}
+                                  sx={{
+                                    bgcolor: 'rgba(255,255,255,0.25)',
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    backdropFilter: 'blur(10px)'
+                                  }}
+                                />
+                                <Chip
+                                  label={`🎓 ${user?.boMon}`}
+                                  sx={{
+                                    bgcolor: 'rgba(255,255,255,0.25)',
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    backdropFilter: 'blur(10px)'
+                                  }}
+                                />
+                                <Chip
+                                  label={`⏰ ${new Date().toLocaleDateString('vi-VN')}`}
+                                  sx={{
+                                    bgcolor: 'rgba(255,255,255,0.15)',
+                                    color: 'white',
+                                    fontWeight: 500
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <Box textAlign="center">
+                              <Avatar
+                                sx={{
+                                  width: 80,
+                                  height: 80,
+                                  bgcolor: 'rgba(255,255,255,0.2)',
+                                  fontSize: '2rem',
+                                  fontWeight: 700,
+                                  mx: 'auto',
+                                  mb: 2,
+                                  border: '3px solid rgba(255,255,255,0.3)'
+                                }}
+                              >
+                                {user?.hoTen?.charAt(0)}
+                              </Avatar>
+                              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Giảng viên'}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </StaggerItem>
+
+                  {/* Enhanced Stats Cards */}
+                  <StaggerItem>
+                    <Grid container spacing={3} mb={4}>
+                      <Grid item xs={12} sm={6} md={4}>
+                        <Card sx={{ 
+                          background: 'linear-gradient(135deg, #1e88e5 0%, #1565c0 100%)', 
                           color: 'white',
-                          mr: 1
-                        }}
-                      />
-                      <Chip
-                        label={`${user?.boMon}`}
-                        sx={{
-                          bgcolor: 'rgba(255,255,255,0.2)',
-                          color: 'white'
-                        }}
-                      />
-                    </Box>
-                  </CardContent>
-                </Card>
+                          position: 'relative',
+                          overflow: 'hidden',
+                          '&:hover': {
+                            transform: 'translateY(-8px)',
+                            transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                            boxShadow: '0 20px 40px rgba(30, 136, 229, 0.4)'
+                          },
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                            opacity: 0.3
+                          }
+                        }}>
+                          <CardContent sx={{ position: 'relative', zIndex: 1, p: 3 }}>
+                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                              <Assessment sx={{ fontSize: 40, opacity: 0.9 }} />
+                              <Typography variant="h2" fontWeight={800} sx={{ color: 'white' }}>
+                                {stats?.sessions?.total || 0}
+                              </Typography>
+                            </Box>
+                            <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 1 }}>
+                              Tổng phiên điểm danh
+                            </Typography>
+                            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
+                              📈 Phiên đã tạo thành công
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid>
 
-                {/* Stats Cards */}
-                <Grid container spacing={3} mb={4}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Box display="flex" alignItems="center" justifyContent="space-between">
-                          <Box>
-                            <Typography color="textSecondary" gutterBottom>
-                              Tổng phiên
+                      <Grid item xs={12} sm={6} md={4}>
+                        <Card sx={{ 
+                          background: 'linear-gradient(135deg, #43a047 0%, #2e7d32 100%)', 
+                          color: 'white',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          '&:hover': {
+                            transform: 'translateY(-8px)',
+                            transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                            boxShadow: '0 20px 40px rgba(67, 160, 71, 0.4)'
+                          },
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M30 30l15-15v30z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                            opacity: 0.3
+                          }
+                        }}>
+                          <CardContent sx={{ position: 'relative', zIndex: 1, p: 3 }}>
+                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                              <School sx={{ fontSize: 40, opacity: 0.9 }} />
+                              <Typography variant="h2" fontWeight={800} sx={{ color: 'white' }}>
+                                {stats?.attendances?.total || 0}
+                              </Typography>
+                            </Box>
+                            <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 1 }}>
+                              Tổng lượt điểm danh
                             </Typography>
-                            <Typography variant="h4" fontWeight={600}>
-                              {stats?.sessions?.total || 0}
+                            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
+                              ✅ Điểm danh thành công
                             </Typography>
-                          </Box>
-                          <Assessment color="primary" sx={{ fontSize: 40 }} />
-                        </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+
+                      <Grid item xs={12} sm={6} md={4}>
+                        <Card sx={{ 
+                          background: 'linear-gradient(135deg, #8e24aa 0%, #6a1b9a 100%)', 
+                          color: 'white',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          '&:hover': {
+                            transform: 'translateY(-8px)',
+                            transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                            boxShadow: '0 20px 40px rgba(142, 36, 170, 0.4)'
+                          },
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'url("data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                            opacity: 0.3
+                          }
+                        }}>
+                          <CardContent sx={{ position: 'relative', zIndex: 1, p: 3 }}>
+                            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                              <People sx={{ fontSize: 40, opacity: 0.9 }} />
+                              <Typography variant="h2" fontWeight={800} sx={{ color: 'white' }}>
+                                {stats?.students?.total || 0}
+                              </Typography>
+                            </Box>
+                            <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 1 }}>
+                              Tổng sinh viên
+                            </Typography>
+                            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem' }}>
+                              👥 Sinh viên trong các lớp
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    </Grid>
+                  </StaggerItem>
+
+                  {/* Quick Actions Section */}
+                  <StaggerItem>
+                    <Card sx={{ mb: 4, borderRadius: 3, overflow: 'hidden' }}>
+                      <CardContent sx={{ p: 4 }}>
+                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+                          🚀 Thao tác nhanh
+                        </Typography>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Button
+                              fullWidth
+                              variant="contained"
+                              size="large"
+                              startIcon={<Add />}
+                              onClick={createSession}
+                              sx={{
+                                py: 2,
+                                background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+                                '&:hover': {
+                                  background: 'linear-gradient(135deg, #ee5a52 0%, #ff6b6b 100%)',
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: '0 8px 25px rgba(255, 107, 107, 0.3)'
+                                }
+                              }}
+                            >
+                              Tạo phiên mới
+                            </Button>
+                          </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Button
+                              fullWidth
+                              variant="outlined"
+                              size="large"
+                              startIcon={<People />}
+                              onClick={() => setTab('students')}
+                              sx={{
+                                py: 2,
+                                borderWidth: 2,
+                                '&:hover': {
+                                  borderWidth: 2,
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: '0 8px 25px rgba(25, 118, 210, 0.15)'
+                                }
+                              }}
+                            >
+                              Quản lý SV
+                            </Button>
+                          </Grid>
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Button
+                              fullWidth
+                              variant="outlined"
+                              size="large"
+                              startIcon={<School />}
+                              onClick={() => setTab('sessions')}
+                              sx={{
+                                py: 2,
+                                borderWidth: 2,
+                                '&:hover': {
+                                  borderWidth: 2,
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: '0 8px 25px rgba(25, 118, 210, 0.15)'
+                                }
+                              }}
+                            >
+                              Xem phiên
+                            </Button>
+                          </Grid>
+                          {user?.role === 'GIANGVIEN' && (
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Button
+                                fullWidth
+                                variant="outlined"
+                                size="large"
+                                startIcon={<Add />}
+                                onClick={handleCreateClassClick}
+                                sx={{
+                                  py: 2,
+                                  borderWidth: 2,
+                                  '&:hover': {
+                                    borderWidth: 2,
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: '0 8px 25px rgba(25, 118, 210, 0.15)'
+                                  }
+                                }}
+                              >
+                                Tạo lớp mới
+                              </Button>
+                            </Grid>
+                          )}
+                        </Grid>
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </StaggerItem>
 
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Box display="flex" alignItems="center" justifyContent="space-between">
-                          <Box>
-                            <Typography color="textSecondary" gutterBottom>
-                              Người dùng
+                  {/* Recent Activity */}
+                  <StaggerItem>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={8}>
+                        <Card sx={{ borderRadius: 3, height: '100%' }}>
+                          <CardContent sx={{ p: 4 }}>
+                            <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+                              📊 Tổng quan hoạt động
                             </Typography>
-                            <Typography variant="h4" fontWeight={600}>
-                              {stats?.users?.total || 0}
+                            <Grid container spacing={2}>
+                              <Grid item xs={6}>
+                                <Box textAlign="center" p={2} sx={{ bgcolor: 'primary.50', borderRadius: 2 }}>
+                                  <Typography variant="h4" fontWeight={700} color="primary.main">
+                                    {sessions?.totalElements || 0}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    Phiên đã tạo
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                              <Grid item xs={6}>
+                                <Box textAlign="center" p={2} sx={{ bgcolor: 'success.50', borderRadius: 2 }}>
+                                  <Typography variant="h4" fontWeight={700} color="success.main">
+                                    {teacherClasses?.length || 0}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    Lớp quản lý
+                                  </Typography>
+                                </Box>
+                              </Grid>
+                            </Grid>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Card sx={{ 
+                          borderRadius: 3, 
+                          height: '100%',
+                          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'
+                        }}>
+                          <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                            <Typography variant="h5" fontWeight={700} gutterBottom>
+                              💡 Mẹo
                             </Typography>
-                          </Box>
-                          <Dashboard color="success" sx={{ fontSize: 40 }} />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Box display="flex" alignItems="center" justifyContent="space-between">
-                          <Box>
-                            <Typography color="textSecondary" gutterBottom>
-                              Tổng điểm danh
+                            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                              Sử dụng QR Code xoay để tăng cường bảo mật điểm danh!
                             </Typography>
-                            <Typography variant="h4" fontWeight={600}>
-                              {stats?.attendances?.total || 0}
-                            </Typography>
-                          </Box>
-                          <School color="info" sx={{ fontSize: 40 }} />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card>
-                      <CardContent>
-                        <Box display="flex" alignItems="center" justifyContent="space-between">
-                          <Box>
-                            <Typography color="textSecondary" gutterBottom>
-                              Sinh viên
-                            </Typography>
-                            <Typography variant="h4" fontWeight={600}>
-                              {stats?.students?.total || 0}
-                            </Typography>
-                          </Box>
-                          <People color="secondary" sx={{ fontSize: 40 }} />
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                </Grid>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    </Grid>
+                  </StaggerItem>
+                </StaggerContainer>
               </Box>
             </Fade>
           )}
@@ -1428,107 +1663,7 @@ export const TeacherDashboard: React.FC = () => {
             </Fade>
           )}
 
-          {/* Users Tab */}
-          {tab === 'users' && (
-            <Fade in={tab === 'users'}>
-              <Box>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                  <Typography variant="h5">
-                    Người dùng
-                  </Typography>
-                </Box>
 
-                <Card>
-                  <CardContent>
-                    <Stack spacing={2} mb={2}>
-                      <Stack direction="row" spacing={2}>
-                        <TextField
-                          label="Username"
-                          value={userForm.username || ''}
-                          onChange={(e) => setUserForm({...userForm, username: e.target.value})}
-                          size="small"
-                        />
-                        <TextField
-                          label="Họ tên"
-                          value={userForm.hoTen || ''}
-                          onChange={(e) => setUserForm({...userForm, hoTen: e.target.value})}
-                          size="small"
-                        />
-                        <TextField
-                          label="Email"
-                          value={userForm.email || ''}
-                          onChange={(e) => setUserForm({...userForm, email: e.target.value})}
-                          size="small"
-                        />
-                        <FormControl size="small" sx={{ minWidth: 120 }}>
-                          <InputLabel>Role</InputLabel>
-                          <Select
-                            value={userForm.role || ''}
-                            onChange={(e) => setUserForm({...userForm, role: e.target.value})}
-                            label="Role"
-                          >
-                            <SelectMenuItem value="ADMIN">Admin</SelectMenuItem>
-                            <SelectMenuItem value="GIANGVIEN">Giảng viên</SelectMenuItem>
-                          </Select>
-                        </FormControl>
-                      </Stack>
-                    </Stack>
-
-                    {users && users.length > 0 ? (
-                      <TableContainer>
-                        <Table>
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>ID</TableCell>
-                              <TableCell>Username</TableCell>
-                              <TableCell>Họ tên</TableCell>
-                              <TableCell>Email</TableCell>
-                              <TableCell>Role</TableCell>
-                              <TableCell>Trạng thái</TableCell>
-                              <TableCell>Đăng nhập cuối</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {users.map((user) => (
-                              <TableRow key={user.id}>
-                                <TableCell>{user.id}</TableCell>
-                                <TableCell>{user.username}</TableCell>
-                                <TableCell>{user.hoTen}</TableCell>
-                                <TableCell>{user.email}</TableCell>
-                                <TableCell>
-                                  <Chip
-                                    label={user.role}
-                                    color={user.role === 'ADMIN' ? 'error' : 'primary'}
-                                    size="small"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Chip
-                                    label={user.isActive ? 'Hoạt động' : 'Khóa'}
-                                    color={user.isActive ? 'success' : 'default'}
-                                    size="small"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('vi-VN') : 'Chưa đăng nhập'}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    ) : (
-                      <Box textAlign="center" py={4}>
-                        <Typography variant="h6" color="textSecondary" gutterBottom>
-                          Chưa có người dùng nào
-                        </Typography>
-                      </Box>
-                    )}
-                  </CardContent>
-                </Card>
-              </Box>
-            </Fade>
-          )}
         </Box>
 
         {/* Snackbar for notifications */}
@@ -1566,7 +1701,6 @@ export const TeacherDashboard: React.FC = () => {
         maxWidth="md"
         fullWidth
         TransitionComponent={Fade}
-        TransitionProps={{ timeout: 500 }}
         PaperProps={{
           sx: {
             borderRadius: 3,
@@ -1794,7 +1928,6 @@ export const TeacherDashboard: React.FC = () => {
       </Dialog>
 
       {/* QR Display Section - Old version (kept for "Show below" option) */}
-      {console.log('Rendering QR section, qrSessionId:', qrSessionId, 'qrAUrl:', qrAUrl)}
       {qrSessionId && !qrModalOpen && (
         <Fade in={!!qrSessionId}>
           <Paper elevation={3} sx={{ p: 3, mt: 3, border: '2px solid', borderColor: 'primary.light' }}>
