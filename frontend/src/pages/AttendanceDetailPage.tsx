@@ -300,7 +300,7 @@ export default function AttendanceDetailPage() {
           <IconButton
             edge="start"
             color="inherit"
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate('/teacher-dashboard')}
             sx={{ mr: 2 }}
           >
             <ArrowBack />

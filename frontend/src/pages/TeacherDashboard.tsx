@@ -799,8 +799,8 @@ export const TeacherDashboard: React.FC = () => {
   return (
     <AnimatedPage>
       {/* App Bar */}
-      <AppBar position="static" elevation={0} sx={{ boxShadow: 'none', border: 'none' }}>
-        <Toolbar>
+      <AppBar position="static" elevation={0} sx={{ boxShadow: 'none', border: 'none', borderRadius: 0 }}>
+        <Toolbar sx={{ borderRadius: 0 }}>
           <School sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             {user?.role === 'ADMIN' ? 'Dashboard Quản trị' : 'Dashboard Giảng viên'}
