@@ -704,9 +704,22 @@ export default function AdminPage() {
                               QR A - Mã xoay (30s)
                             </Typography>
                             {qrARemainMs > 0 && (
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
-                                Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
-                              </Typography>
+                              <Box sx={{ 
+                                mt: 1, 
+                                p: 0.5,
+                                bgcolor: 'primary.50',
+                                borderRadius: 1,
+                                border: '1px solid',
+                                borderColor: 'primary.200'
+                              }}>
+                                <Typography variant="caption" sx={{ 
+                                  color: 'primary.main',
+                                  fontWeight: 600,
+                                  fontSize: '0.7rem'
+                                }}>
+                                  🕒 Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
+                                </Typography>
+                              </Box>
                             )}
                           </Box>
                         )}

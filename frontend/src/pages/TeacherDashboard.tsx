@@ -2016,34 +2016,46 @@ export const TeacherDashboard: React.FC = () => {
                         }
                       }
                     }}>
-                      <Box sx={{ mb: 2, textAlign: 'center' }}>
-                        <Typography variant="subtitle1" sx={{
-                          fontWeight: 600,
-                          color: 'primary.main'
-                        }}>
-                          QR A - Mã xoay (30s)
-                        </Typography>
-                        {qrARemainMs > 0 && (
-                          <Typography variant="body2" sx={{
-                            color: 'text.secondary',
-                            mt: 0.5
-                          }}>
-                            Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
-                          </Typography>
-                        )}
-                      </Box>
+                      <Typography variant="subtitle1" sx={{
+                        mb: 2,
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        color: 'primary.main'
+                      }}>
+                        QR A - Mã xoay (30s)
+                      </Typography>
                       {qrAUrl ? (
-                        <QRWidget
-                          data={window.location.origin + qrAUrl}
-                          title=""
-                          size="extra-large"
-                          showCopy={true}
-                          showDownload={true}
-                          showRefresh={false}
-                          showDataToggle={false}
-                          status="active"
-                          sx={{ mx: 'auto' }}
-                        />
+                        <>
+                          <QRWidget
+                            data={window.location.origin + qrAUrl}
+                            title=""
+                            size="extra-large"
+                            showCopy={true}
+                            showDownload={true}
+                            showRefresh={false}
+                            showDataToggle={false}
+                            status="active"
+                            sx={{ mx: 'auto' }}
+                          />
+                          {qrARemainMs > 0 && (
+                            <Box sx={{ 
+                              mt: 2, 
+                              textAlign: 'center',
+                              p: 1,
+                              bgcolor: 'primary.50',
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: 'primary.200'
+                            }}>
+                              <Typography variant="body2" sx={{
+                                color: 'primary.main',
+                                fontWeight: 600
+                              }}>
+                                🕒 Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
+                              </Typography>
+                            </Box>
+                          )}
+                        </>
                       ) : (
                         <Box sx={{
                           width: 400,
@@ -2231,35 +2243,47 @@ export const TeacherDashboard: React.FC = () => {
                           }
                         }
                       }}>
-                        <Box sx={{ mb: 2, textAlign: 'center' }}>
-                          <Typography variant="subtitle1" sx={{
-                            fontWeight: 600,
-                            color: 'primary.main'
-                          }}>
-                            QR A - Mã xoay (30s)
-                          </Typography>
-                          {qrARemainMs > 0 && (
-                            <Typography variant="body2" sx={{
-                              color: 'text.secondary',
-                              mt: 0.5
-                            }}>
-                              Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
-                            </Typography>
-                          )}
-                        </Box>
+                        <Typography variant="subtitle1" sx={{
+                          mb: 2,
+                          textAlign: 'center',
+                          fontWeight: 600,
+                          color: 'primary.main'
+                        }}>
+                          QR A - Mã xoay (30s)
+                        </Typography>
                         {qrAUrl ? (
-                          <QRWidget
-                            data={window.location.origin + qrAUrl}
-                            title="QR Code điểm danh"
-                            size="extra-large"
-                            showCopy={true}
-                            showDownload={true}
-                            showRefresh={true}
-                            showDataToggle={false}
+                          <>
+                            <QRWidget
+                              data={window.location.origin + qrAUrl}
+                              title="QR Code điểm danh"
+                              size="extra-large"
+                              showCopy={true}
+                              showDownload={true}
+                              showRefresh={true}
+                              showDataToggle={false}
                             status="active"
                             onRefresh={handleRefreshQR}
                             sx={{ mx: 'auto' }}
                           />
+                          {qrARemainMs > 0 && (
+                            <Box sx={{ 
+                              mt: 2, 
+                              textAlign: 'center',
+                              p: 1,
+                              bgcolor: 'primary.50',
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: 'primary.200'
+                            }}>
+                              <Typography variant="body2" sx={{
+                                color: 'primary.main',
+                                fontWeight: 600
+                              }}>
+                                🕒 Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
+                              </Typography>
+                            </Box>
+                          )}
+                        </>
                         ) : (
                           <Box sx={{
                             width: 400,
