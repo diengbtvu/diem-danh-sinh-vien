@@ -163,6 +163,8 @@ export default function AttendanceDetailPage() {
     }
   }, [session?.maLop])
 
+
+
   useEffect(() => {
     if (sessionId) {
       console.log('useEffect: sessionId found, fetching data for:', sessionId)
@@ -190,6 +192,48 @@ export default function AttendanceDetailPage() {
       fetchStudents()
     }
   }, [session, fetchStudents])
+
+  // Fetch missing students after attendances are loaded
+  useEffect(() => {
+    if (!attendances?.content) return
+
+    const attendanceMSSVs = attendances.content.map(a => a.mssv).filter(Boolean)
+    const studentMSSVs = students.map(s => s.mssv)
+    const missingMSSVs = attendanceMSSVs.filter(mssv => !studentMSSVs.includes(mssv))
+
+    if (missingMSSVs.length === 0) return
+
+    console.log('useEffect fetchMissingStudents: Found missing MSSSVs:', missingMSSVs, 'Session maLop:', session?.maLop)
+
+    const fetchMissing = async () => {
+      try {
+        const missingStudents: Student[] = []
+        for (const mssv of missingMSSVs) {
+          try {
+            const response = await apiRequest(`/api/admin/students/${mssv}`)
+            if (response.ok) {
+              const student = await response.json()
+              missingStudents.push(student)
+              console.log(`fetchMissingStudents: Found student ${mssv}:`, student)
+            } else {
+              console.warn(`fetchMissingStudents: Student ${mssv} not found in database`)
+            }
+          } catch (error) {
+            console.error(`fetchMissingStudents: Error fetching student ${mssv}:`, error)
+          }
+        }
+
+        if (missingStudents.length > 0) {
+          setStudents(prev => [...prev, ...missingStudents])
+          console.log('fetchMissingStudents: Added missing students:', missingStudents)
+        }
+      } catch (error) {
+        console.error('fetchMissingStudents: Error:', error)
+      }
+    }
+
+    fetchMissing()
+  }, [attendances?.content?.length, students.length])
 
   const updateAttendance = async () => {
     if (!editingAttendance) return
@@ -232,7 +276,7 @@ export default function AttendanceDetailPage() {
   const getStudentName = (mssv: string) => {
     const student = students.find(s => s.mssv === mssv)
     if (!student) {
-      console.log(`getStudentName: Student not found for MSSV ${mssv}. Available students:`, students.length, students.map(s => s.mssv))
+      console.log(`getStudentName: Student not found for MSSV ${mssv}. Available students:`, students.length, students.map(s => `${s.mssv}(${s.hoTen})`))
     }
     return student ? student.hoTen : 'Không tìm thấy'
   }
