@@ -141,10 +141,10 @@ public class AttendanceController {
         if (student == null || confidence == null) {
             status = AttendanceEntity.Status.REVIEW;
             log.info("Setting status to REVIEW - student not found or no confidence score");
-        } else if (confidence >= 0.9) {
+        } else if (confidence >= 0.8) {
             status = AttendanceEntity.Status.ACCEPTED;
             log.info("Setting status to ACCEPTED - high confidence: {}", confidence);
-        } else if (confidence >= 0.7) {
+        } else if (confidence >= 0.6) {
             status = AttendanceEntity.Status.REVIEW;
             log.info("Setting status to REVIEW - medium confidence: {}", confidence);
         } else {
