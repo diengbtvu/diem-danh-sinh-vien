@@ -334,25 +334,7 @@ export const LoginPage: React.FC = () => {
                 </Typography>
               </Box>
 
-              {/* Security Notice */}
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  p: 2,
-                  backgroundColor: alpha(theme.palette.info.main, 0.08),
-                  borderRadius: 2,
-                  border: `1px solid ${alpha(theme.palette.info.main, 0.15)}`
-                }}
-              >
-                <Security sx={{ color: 'info.main', mb: 1, fontSize: '1.2rem' }} />
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
-                  🔒 Kết nối được mã hóa SSL
-                  <br />
-                  🛡️ Bảo vệ khỏi tấn công brute force
-                  <br />
-                  ⏱️ Phiên đăng nhập tự động hết hạn
-                </Typography>
-              </Box>
+
             </Stack>
           </ProfessionalForm>
         </motion.div>
