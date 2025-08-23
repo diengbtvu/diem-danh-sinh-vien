@@ -23,6 +23,7 @@ server:
 app:
   faceApiUrl: http://apimaycogiau.zettix.net
   rotateSeconds: 20
+  sessionTokenRotateSeconds: 30
   hmacSecret: change-me
   frontendHost: https://diemdanh.zettix.net
 

@@ -90,6 +90,7 @@ export default function AdminPage() {
   const [qrBData, setQrBData] = useState<string>('')
   const [qr2Active, setQr2Active] = useState<boolean>(false)
   const [qr2RemainMs, setQr2RemainMs] = useState<number>(0)
+  const [qrARemainMs, setQrARemainMs] = useState<number>(0)
 
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
   const [stats, setStats] = useState<{ total: number; accepted: number; review: number; rejected: number } | null>(null)
@@ -136,6 +137,13 @@ export default function AdminPage() {
           setQr2Active(!!json.qr2Active)
           setQr2RemainMs(json.validForMs || 0)
           setQrBData(json.rotatingToken || '')
+          
+          // Calculate QR A remaining time (30s rotation)
+          const now = Date.now()
+          const qrAIntervalMs = 30 * 1000 // 30 seconds
+          const qrARemaining = qrAIntervalMs - (now % qrAIntervalMs)
+          setQrARemainMs(qrARemaining)
+          
           // QR URL is generated dynamically
         }
       } catch (err) {
@@ -693,8 +701,13 @@ export default function AdminPage() {
                               style={{ borderRadius: 12, maxWidth: '100%' }}
                             />
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                              QR A - Liên kết phiên học
+                              QR A - Mã xoay (30s)
                             </Typography>
+                            {qrARemainMs > 0 && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                                Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
+                              </Typography>
+                            )}
                           </Box>
                         )}
                       </Stack>
@@ -868,7 +881,7 @@ export default function AdminPage() {
 
                               <Box>
                                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                  QR A - Liên kết phiên học
+                                  QR A - Mã xoay (30s)
                                 </Typography>
                                 <Typography variant="body2" sx={{ wordBreak: 'break-all', bgcolor: 'primary.50', p: 1, borderRadius: 1 }}>
                                   {qrAUrl || 'Đang tạo QR A...'}
@@ -987,7 +1000,7 @@ export default function AdminPage() {
                               </Box>
 
                               <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                                {qr2Active ? 'QR A + QR B đang hiển thị' : 'QR A - Liên kết phiên học'}
+                                {qr2Active ? 'QR A + QR B đang hiển thị' : 'QR A - Mã xoay (30s)'}
                               </Typography>
                             </Box>
                           </Grid>
@@ -1222,7 +1235,7 @@ export default function AdminPage() {
                                 <Stack spacing={2}>
                                   <Box>
                                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                                      QR A - Liên kết phiên học
+                                      QR A - Mã xoay (30s)
                                     </Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                       <TextField
@@ -1312,7 +1325,7 @@ export default function AdminPage() {
                                   </Box>
 
                                   <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                                    {createQr2Active ? 'QR A + QR B đang hiển thị' : 'QR A - Liên kết phiên học'}
+                                    {createQr2Active ? 'QR A + QR B đang hiển thị' : 'QR A - Mã xoay (30s)'}
                                   </Typography>
                                 </Box>
                               </Grid>

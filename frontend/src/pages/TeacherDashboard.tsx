@@ -228,6 +228,7 @@ export const TeacherDashboard: React.FC = () => {
   const [qr2Active, setQr2Active] = useState(false);
   const [qr2RemainMs, setQr2RemainMs] = useState(0);
   const [qrBData, setQrBData] = useState('');
+  const [qrARemainMs, setQrARemainMs] = useState(0);
 
   // CSV import
   const [csvText, setCsvText] = useState('');
@@ -830,7 +831,14 @@ export const TeacherDashboard: React.FC = () => {
           setQr2Active(!!json.qr2Active);
           setQr2RemainMs(json.validForMs || 0);
           setQrBData(json.rotatingToken || '');
-          console.log('QR state updated:', { sessionLink, qr2Active: !!json.qr2Active });
+          
+          // Calculate QR A remaining time (30s rotation)
+          const now = Date.now();
+          const qrAIntervalMs = 30 * 1000; // 30 seconds
+          const qrARemaining = qrAIntervalMs - (now % qrAIntervalMs);
+          setQrARemainMs(qrARemaining);
+          
+          console.log('QR state updated:', { sessionLink, qr2Active: !!json.qr2Active, qrARemaining });
         }
       } catch (err) {
         console.log('QR polling error:', err);
@@ -1894,7 +1902,7 @@ export const TeacherDashboard: React.FC = () => {
                   <Stack spacing={2}>
                     <Alert severity="info" sx={{ '& .MuiAlert-message': { width: '100%' } }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                        Bước 1: QR A - Mã cố định
+                        Bước 1: QR A - Mã xoay (30s)
                       </Typography>
                       <Typography variant="body2">
                         Sinh viên quét mã QR A để vào trang điểm danh
@@ -1994,7 +2002,7 @@ export const TeacherDashboard: React.FC = () => {
                       />
                     </Box>
                   ) : (
-                    /* QR A - Mã cố định */
+                                              /* QR A - Mã xoay (30s) */
                     <Box sx={{
                       animation: qrAUrl ? 'slideInFromLeft 0.5s ease-out' : 'none',
                       '@keyframes slideInFromLeft': {
@@ -2008,13 +2016,22 @@ export const TeacherDashboard: React.FC = () => {
                         }
                       }
                     }}>
-                      <Typography variant="subtitle1" sx={{
-                        mb: 2,
-                        fontWeight: 600,
-                        color: 'primary.main'
-                      }}>
-                        QR A - Mã cố định
-                      </Typography>
+                      <Box sx={{ mb: 2, textAlign: 'center' }}>
+                        <Typography variant="subtitle1" sx={{
+                          fontWeight: 600,
+                          color: 'primary.main'
+                        }}>
+                          QR A - Mã xoay (30s)
+                        </Typography>
+                        {qrARemainMs > 0 && (
+                          <Typography variant="body2" sx={{
+                            color: 'text.secondary',
+                            mt: 0.5
+                          }}>
+                            Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
+                          </Typography>
+                        )}
+                      </Box>
                       {qrAUrl ? (
                         <QRWidget
                           data={window.location.origin + qrAUrl}
@@ -2098,7 +2115,7 @@ export const TeacherDashboard: React.FC = () => {
                 <Stack spacing={2}>
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                      QR A - Mã cố định
+                                              QR A - Mã xoay (30s)
                     </Typography>
                     <Alert severity="info">
                       Sinh viên quét mã này để vào trang điểm danh
@@ -2200,7 +2217,7 @@ export const TeacherDashboard: React.FC = () => {
                         />
                       </Box>
                     ) : (
-                      /* QR A - Mã cố định */
+                      /* QR A - Mã xoay (30s) */
                       <Box sx={{
                         animation: qrAUrl ? 'slideInFromLeft 0.5s ease-out' : 'none',
                         '@keyframes slideInFromLeft': {
@@ -2214,13 +2231,22 @@ export const TeacherDashboard: React.FC = () => {
                           }
                         }
                       }}>
-                        <Typography variant="subtitle1" sx={{
-                          mb: 2,
-                          fontWeight: 600,
-                          color: 'primary.main'
-                        }}>
-                          QR A - Mã cố định
-                        </Typography>
+                        <Box sx={{ mb: 2, textAlign: 'center' }}>
+                          <Typography variant="subtitle1" sx={{
+                            fontWeight: 600,
+                            color: 'primary.main'
+                          }}>
+                            QR A - Mã xoay (30s)
+                          </Typography>
+                          {qrARemainMs > 0 && (
+                            <Typography variant="body2" sx={{
+                              color: 'text.secondary',
+                              mt: 0.5
+                            }}>
+                              Làm mới sau: {Math.ceil(qrARemainMs / 1000)}s
+                            </Typography>
+                          )}
+                        </Box>
                         {qrAUrl ? (
                           <QRWidget
                             data={window.location.origin + qrAUrl}

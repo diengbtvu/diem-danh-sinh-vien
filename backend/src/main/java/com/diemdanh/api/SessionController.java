@@ -92,7 +92,10 @@ public class SessionController {
         String rotatingToken = qrTokenService.buildRotatingToken(info.getSessionId(), info.getStartAt().getEpochSecond(), now);
         long step = Math.floorDiv(now - info.getStartAt().getEpochSecond(), info.getRotateSeconds());
         long validFor = (info.getRotateSeconds() - ((now - info.getStartAt().getEpochSecond()) % info.getRotateSeconds())) * 1000L;
-        String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond());
+        
+        // Use rotating session token instead of fixed one
+        String sessionToken = qrTokenService.buildRotatingSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond(), now);
+        
         return RotatingTokenResponse.builder()
                 .sessionToken(sessionToken)
                 .rotatingToken(rotatingToken)
@@ -119,7 +122,7 @@ public class SessionController {
         
         sessionService.activateQr2(sessionId, actualWindowSeconds);
         long now = Instant.now().getEpochSecond();
-        String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond());
+        String sessionToken = qrTokenService.buildRotatingSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond(), now);
         String rotatingToken = qrTokenService.buildRotatingToken(info.getSessionId(), info.getStartAt().getEpochSecond(), now);
         var status = sessionService.getActivationStatus(sessionId);
         return SessionStatusResponse.builder()
@@ -173,7 +176,7 @@ public class SessionController {
             return ResponseEntity.status(410).build(); // Gone - Session expired
         }
         long now = Instant.now().getEpochSecond();
-        String sessionToken = qrTokenService.buildSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond());
+        String sessionToken = qrTokenService.buildRotatingSessionToken(info.getSessionId(), info.getStartAt().getEpochSecond(), now);
         var status = sessionService.getActivationStatus(sessionId);
         String rotatingToken = status.active() ? qrTokenService.buildRotatingToken(info.getSessionId(), info.getStartAt().getEpochSecond(), now) : null;
         SessionStatusResponse response = SessionStatusResponse.builder()

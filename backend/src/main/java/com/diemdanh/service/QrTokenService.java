@@ -20,6 +20,9 @@ public class QrTokenService {
 
     @Value("${app.rotateSeconds:20}")
     private int rotateSeconds;
+    
+    @Value("${app.sessionTokenRotateSeconds:30}")
+    private int sessionTokenRotateSeconds;
 
     public QrTokenService(AttendanceConfig attendanceConfig) {
         this.attendanceConfig = attendanceConfig;
@@ -42,6 +45,14 @@ public class QrTokenService {
         String payload = "SESSION-" + sessionId + "." + issuedAtEpochSec;
         return payload + "." + sign(payload);
     }
+    
+    public String buildRotatingSessionToken(String sessionId, long sessionStartEpochSec, long nowEpochSec) {
+        // QR A rotates every sessionTokenRotateSeconds (default 30s)
+        long sessionStep = Math.floorDiv(nowEpochSec - sessionStartEpochSec, sessionTokenRotateSeconds);
+        long rotatingIssuedAt = sessionStartEpochSec + (sessionStep * sessionTokenRotateSeconds);
+        String payload = "SESSION-" + sessionId + "." + rotatingIssuedAt;
+        return payload + "." + sign(payload);
+    }
 
     public String buildRotatingToken(String sessionId, long sessionStartEpochSec, long nowEpochSec) {
         long step = Math.floorDiv(nowEpochSec - sessionStartEpochSec, rotateSeconds);
@@ -61,6 +72,12 @@ public class QrTokenService {
     public boolean isStepValid(long sessionStartEpochSec, long nowEpochSec, long tokenStep) {
         long currentStep = Math.floorDiv(nowEpochSec - sessionStartEpochSec, rotateSeconds);
         return Math.abs(currentStep - tokenStep) <= attendanceConfig.getQrStepTolerance();
+    }
+    
+    public boolean isSessionStepValid(long sessionStartEpochSec, long nowEpochSec, long tokenIssuedAt) {
+        long currentSessionStep = Math.floorDiv(nowEpochSec - sessionStartEpochSec, sessionTokenRotateSeconds);
+        long tokenSessionStep = Math.floorDiv(tokenIssuedAt - sessionStartEpochSec, sessionTokenRotateSeconds);
+        return Math.abs(currentSessionStep - tokenSessionStep) <= attendanceConfig.getQrStepTolerance();
     }
 
     public boolean validateRotatingToken(String rotatingToken, String sessionId, long sessionStartEpochSec) {
@@ -92,5 +109,9 @@ public class QrTokenService {
 
     public int getRotateSeconds() {
         return rotateSeconds;
+    }
+    
+    public int getSessionTokenRotateSeconds() {
+        return sessionTokenRotateSeconds;
     }
 }

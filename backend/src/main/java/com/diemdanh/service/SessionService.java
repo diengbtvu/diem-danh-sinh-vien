@@ -122,23 +122,44 @@ public class SessionService {
         
         // QR A usage tracking methods
         public boolean isQrAUsed(String sessionId) {
-            var state = qrAUsageState.get(sessionId);
+            // Check if current session step's QR A is used
+            long now = Instant.now().toEpochMilli();
+            var sessionInfo = get(sessionId);
+            if (sessionInfo == null) return false;
+            
+            long currentSessionStep = Math.floorDiv(now / 1000 - sessionInfo.getStartAt().getEpochSecond(), 30);
+            String stepKey = sessionId + "_" + currentSessionStep;
+            
+            var state = qrAUsageState.get(stepKey);
             return state != null && state.used;
         }
         
         public boolean markQrAAsUsed(String sessionId) {
-            // Returns true if successfully marked as used (first time)
-            // Returns false if already used
-            var existing = qrAUsageState.putIfAbsent(sessionId, new QrAUsageState(true, Instant.now().toEpochMilli()));
-            return existing == null; // true = first use, false = already used
+            // Mark QR A as used for current session step
+            long now = Instant.now().toEpochMilli();
+            var sessionInfo = get(sessionId);
+            if (sessionInfo == null) return false;
+            
+            long currentSessionStep = Math.floorDiv(now / 1000 - sessionInfo.getStartAt().getEpochSecond(), 30);
+            String stepKey = sessionId + "_" + currentSessionStep;
+            
+            var existing = qrAUsageState.putIfAbsent(stepKey, new QrAUsageState(true, now));
+            return existing == null; // true = first use for this step, false = already used in this step
         }
         
         public boolean isQrAAccessAllowed(String sessionId) {
-            var qrAState = qrAUsageState.get(sessionId);
+            long now = Instant.now().toEpochMilli();
+            var sessionInfo = get(sessionId);
+            if (sessionInfo == null) return false;
+            
+            long currentSessionStep = Math.floorDiv(now / 1000 - sessionInfo.getStartAt().getEpochSecond(), 30);
+            String stepKey = sessionId + "_" + currentSessionStep;
+            
+            var qrAState = qrAUsageState.get(stepKey);
             var activationStatus = getActivationStatus(sessionId);
             
             // QR A access is NOT allowed if:
-            // 1. QR A has been used AND QR B has been activated
+            // 1. Current step's QR A has been used AND QR B has been activated
             if (qrAState != null && qrAState.used && activationStatus.active()) {
                 return false;
             }
@@ -146,8 +167,15 @@ public class SessionService {
             return true; // Allow access otherwise
         }
         
+        public boolean isQrAUsedForCurrentStep(String sessionId, long currentSessionStep) {
+            String stepKey = sessionId + "_" + currentSessionStep;
+            var state = qrAUsageState.get(stepKey);
+            return state != null && state.used;
+        }
+        
         public void resetQrAUsage(String sessionId) {
-            qrAUsageState.remove(sessionId);
+            // Remove all QR A usage entries for this session (all steps)
+            qrAUsageState.entrySet().removeIf(entry -> entry.getKey().startsWith(sessionId + "_"));
         }
         
         // Reset both QR A and QR B state for a session (admin function)
