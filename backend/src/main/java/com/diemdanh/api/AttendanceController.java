@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -114,6 +115,16 @@ public class AttendanceController {
         StudentEntity student = mssv != null ? studentRepository.findById(mssv).orElse(null) : null;
         
         log.info("Student lookup: mssv={}, studentFound={}", mssv, student != null);
+
+        // Check for duplicate attendance - prevent the same student from submitting multiple times for the same session
+        if (mssv != null) {
+            List<AttendanceEntity> existingAttendances = attendanceRepository.findByMssvAndSessionId(mssv, sessionId);
+            if (!existingAttendances.isEmpty()) {
+                log.warn("Duplicate attendance attempt detected: mssv={}, sessionId={}, existingRecords={}", 
+                    mssv, sessionId, existingAttendances.size());
+                throw new IllegalArgumentException("Sinh viên đã điểm danh cho phiên này rồi. Mỗi sinh viên chỉ được điểm danh một lần cho mỗi phiên học.");
+            }
+        }
 
         AttendanceEntity.Status status;
         if (student == null || confidence == null) {

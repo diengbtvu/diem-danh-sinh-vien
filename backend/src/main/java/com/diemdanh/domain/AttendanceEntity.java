@@ -9,7 +9,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "attendances")
+@Table(name = "attendances", uniqueConstraints = {
+    @UniqueConstraint(name = "unique_session_student", columnNames = {"session_id", "mssv"})
+})
 @Getter
 @Setter
 public class AttendanceEntity {
