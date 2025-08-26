@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import AttendPage from './pages/AttendPage'
-import AdminPage from './pages/AdminPage'
 import CreateSessionPage from './pages/CreateSessionPage'
 import AttendanceDetailPage from './pages/AttendanceDetailPage'
 

@@ -57,8 +57,21 @@ type CreateSessionResponse = {
   expiresAt: string
 }
 
+type User = {
+  id: number
+  username: string
+  hoTen: string
+  email: string
+  role: string
+  khoa?: string
+  boMon?: string
+  isActive: boolean
+  createdAt?: string
+  lastLoginAt?: string | null
+}
+
 export default function AdminPage() {
-  const [tab, setTab] = useState<'dashboard' | 'sessions' | 'students' | 'create'>('dashboard')
+  const [tab, setTab] = useState<'dashboard' | 'sessions' | 'students' | 'users' | 'create'>('dashboard')
   const [csvText, setCsvText] = useState('')
   const [sessions, setSessions] = useState<Page<Session> | null>(null)
   const [students, setStudents] = useState<Page<Student> | null>(null)
@@ -111,6 +124,21 @@ export default function AdminPage() {
   const [studentSearch, setStudentSearch] = useState('')
   const [sessionSort, setSessionSort] = useState({ column: 'createdAt', direction: 'desc' as 'asc' | 'desc' })
   const [studentSort, setStudentSort] = useState({ column: 'hoTen', direction: 'asc' as 'asc' | 'desc' })
+
+  // Users management state
+  const [users, setUsers] = useState<User[]>([])
+  const [userError, setUserError] = useState<string>('')
+  const [userSuccess, setUserSuccess] = useState<string>('')
+  const [createUserDialog, setCreateUserDialog] = useState(false)
+  const [newUser, setNewUser] = useState<{
+    username: string
+    password: string
+    hoTen: string
+    email: string
+    role: string
+    khoa: string
+    boMon: string
+  }>({ username: '', password: '', hoTen: '', email: '', role: 'GIANGVIEN', khoa: '', boMon: '' })
 
 
 
@@ -185,6 +213,20 @@ export default function AdminPage() {
     const data = await response.json()
     setStudents(data)
   }, [pageStu, studentSort, studentSearch])
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await apiRequest('/api/admin/users')
+      if (!response.ok) {
+        setUserError(`Lỗi tải người dùng: ${response.status}`)
+        return
+      }
+      const json = await response.json()
+      setUsers(json.data || json.content || [])
+    } catch (e) {
+      setUserError('Lỗi kết nối tới server')
+    }
+  }, [])
 
 
 
@@ -415,6 +457,12 @@ export default function AdminPage() {
   }, [tab, fetchStudents])
 
   useEffect(() => {
+    if (tab === 'users') {
+      fetchUsers()
+    }
+  }, [tab, fetchUsers])
+
+  useEffect(() => {
     if (tab === 'create') {
       loadClasses()
     }
@@ -432,6 +480,47 @@ export default function AdminPage() {
       }
     }
   }, [tab, selectedSessionId, fetchSessions, fetchStudents, fetchStats, fetchOverview, fetchDashboardStats])
+
+  const handleCreateUser = async () => {
+    setLoading(true)
+    setUserError('')
+    setUserSuccess('')
+    try {
+      const response = await apiRequest('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      })
+      const result = await response.json()
+      if (response.ok && (result.success ?? true)) {
+        setUserSuccess('Tạo tài khoản thành công')
+        setCreateUserDialog(false)
+        setNewUser({ username: '', password: '', hoTen: '', email: '', role: 'GIANGVIEN', khoa: '', boMon: '' })
+        fetchUsers()
+      } else {
+        setUserError(result.message || 'Không thể tạo tài khoản')
+      }
+    } catch (e) {
+      setUserError('Lỗi tạo tài khoản')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleToggleUserStatus = async (userId: number) => {
+    try {
+      const response = await apiRequest(`/api/admin/users/${userId}/toggle-status`, { method: 'POST' })
+      const result = await response.json().catch(() => ({}))
+      if (response.ok && (result.success ?? true)) {
+        setUserSuccess('Cập nhật trạng thái thành công')
+        fetchUsers()
+      } else {
+        setUserError(result.message || 'Không thể cập nhật trạng thái')
+      }
+    } catch (e) {
+      setUserError('Lỗi kết nối')
+    }
+  }
 
   // Poll QR B for created session
   useEffect(() => {
@@ -519,6 +608,13 @@ export default function AdminPage() {
                 value="students"
                 label="Quản lý sinh viên"
                 icon={<People />}
+                iconPosition="start"
+                sx={{ textTransform: 'none' }}
+              />
+              <Tab
+                value="users"
+                label="Quản lý người dùng"
+                icon={<Person />}
                 iconPosition="start"
                 sx={{ textTransform: 'none' }}
               />
@@ -1179,6 +1275,115 @@ export default function AdminPage() {
                   />
                 </Grid>
               </Grid>
+            </Box>
+          </Fade>
+        )}
+
+        {tab === 'users' && (
+          <Fade in={tab === 'users'}>
+            <Box sx={{ mt: 2 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                          Quản lý người dùng
+                        </Typography>
+                        <Stack direction="row" spacing={2}>
+                          <Button variant="outlined" startIcon={<Refresh />} onClick={fetchUsers}>
+                            Làm mới
+                          </Button>
+                          <Button variant="contained" startIcon={<Add />} onClick={() => setCreateUserDialog(true)}>
+                            Tạo tài khoản
+                          </Button>
+                        </Stack>
+                      </Box>
+
+                      {userError && (
+                        <Alert severity="error" onClose={() => setUserError('')} sx={{ mb: 2 }}>
+                          {userError}
+                        </Alert>
+                      )}
+                      {userSuccess && (
+                        <Alert severity="success" onClose={() => setUserSuccess('')} sx={{ mb: 2 }}>
+                          {userSuccess}
+                        </Alert>
+                      )}
+
+                      <TableContainer component={Paper} variant="outlined">
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Tên đăng nhập</TableCell>
+                              <TableCell>Họ tên</TableCell>
+                              <TableCell>Email</TableCell>
+                              <TableCell>Vai trò</TableCell>
+                              <TableCell>Khoa/Bộ môn</TableCell>
+                              <TableCell>Trạng thái</TableCell>
+                              <TableCell>Thao tác</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {users.map((u) => (
+                              <TableRow key={u.id}>
+                                <TableCell>{u.username}</TableCell>
+                                <TableCell>{u.hoTen}</TableCell>
+                                <TableCell>{u.email}</TableCell>
+                                <TableCell>
+                                  <Chip label={u.role} color={u.role === 'ADMIN' ? 'primary' : 'secondary'} size="small" />
+                                </TableCell>
+                                <TableCell>
+                                  {(u.khoa || u.boMon) && (
+                                    <Typography variant="body2">
+                                      {u.khoa}{u.boMon ? ` - ${u.boMon}` : ''}
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <Chip label={u.isActive ? 'Hoạt động' : 'Khóa'} color={u.isActive ? 'success' : 'error'} size="small" />
+                                </TableCell>
+                                <TableCell>
+                                  <IconButton onClick={() => handleToggleUserStatus(u.id)} color={u.isActive ? 'error' : 'success'} size="small">
+                                    {u.isActive ? <Block /> : <CheckCircle />}
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Dialog open={createUserDialog} onClose={() => setCreateUserDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Tạo tài khoản mới</DialogTitle>
+                <DialogContent>
+                  <Stack spacing={2} sx={{ mt: 1 }}>
+                    <TextField label="Tên đăng nhập" value={newUser.username} onChange={(e) => setNewUser(v => ({ ...v, username: e.target.value }))} required />
+                    <TextField label="Mật khẩu" type="password" value={newUser.password} onChange={(e) => setNewUser(v => ({ ...v, password: e.target.value }))} required />
+                    <TextField label="Họ tên" value={newUser.hoTen} onChange={(e) => setNewUser(v => ({ ...v, hoTen: e.target.value }))} required />
+                    <TextField label="Email" type="email" value={newUser.email} onChange={(e) => setNewUser(v => ({ ...v, email: e.target.value }))} required />
+                    <FormControl fullWidth>
+                      <InputLabel>Vai trò</InputLabel>
+                      <Select value={newUser.role} label="Vai trò" onChange={(e) => setNewUser(v => ({ ...v, role: e.target.value as string }))}>
+                        <MenuItem value="ADMIN">Admin</MenuItem>
+                        <MenuItem value="GIANGVIEN">Giảng viên</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <TextField label="Khoa" value={newUser.khoa} onChange={(e) => setNewUser(v => ({ ...v, khoa: e.target.value }))} />
+                    <TextField label="Bộ môn" value={newUser.boMon} onChange={(e) => setNewUser(v => ({ ...v, boMon: e.target.value }))} />
+                  </Stack>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setCreateUserDialog(false)}>Hủy</Button>
+                  <LoadingButton variant="contained" onClick={handleCreateUser} loading={loading}>
+                    Tạo
+                  </LoadingButton>
+                </DialogActions>
+              </Dialog>
             </Box>
           </Fade>
         )}
