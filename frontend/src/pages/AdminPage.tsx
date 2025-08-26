@@ -11,7 +11,7 @@ import {
   Dashboard, School, People, QrCode, Add, Edit, Visibility, Delete,
   FileDownload, Refresh, TrendingUp, CheckCircle, Person, Assessment,
   Analytics, CalendarToday, Group, Class, BarChart, PieChart, Menu,
-  Home, ContentCopy, Schedule, PlayArrow, Stop
+  Home, ContentCopy, Schedule, PlayArrow, Stop, Block
 } from '@mui/icons-material'
 import LoadingButton from '../components/LoadingButton'
 import StatusCard from '../components/StatusCard'
