@@ -166,6 +166,48 @@ public class AdminUserController {
     }
 
     /**
+     * Cập nhật thông tin user
+     */
+    @PutMapping("/{userId}")
+    public ResponseEntity<Map<String, Object>> updateUser(@PathVariable Long userId, @RequestBody UpdateUserRequest request) {
+        var userOpt = userRepository.findById(userId);
+        
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.ok(Map.of("success", false, "message", "Không tìm thấy user"));
+        }
+        
+        UserEntity user = userOpt.get();
+        
+        // Cập nhật thông tin
+        if (request.getHoTen() != null && !request.getHoTen().trim().isEmpty()) {
+            user.setHoTen(request.getHoTen().trim());
+        }
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            user.setEmail(request.getEmail().trim());
+        }
+        if (request.getRole() != null && !request.getRole().trim().isEmpty()) {
+            try {
+                user.setRole(UserEntity.Role.valueOf(request.getRole()));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.ok(Map.of("success", false, "message", "Vai trò không hợp lệ"));
+            }
+        }
+        if (request.getKhoa() != null) {
+            user.setKhoa(request.getKhoa().trim());
+        }
+        if (request.getBoMon() != null) {
+            user.setBoMon(request.getBoMon().trim());
+        }
+        
+        try {
+            userRepository.save(user);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Cập nhật thông tin thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("success", false, "message", "Lỗi cập nhật thông tin"));
+        }
+    }
+
+    /**
      * Lấy thông tin user theo ID
      */
     @GetMapping("/{userId}")
@@ -207,6 +249,26 @@ public class AdminUserController {
         public void setUsername(String username) { this.username = username; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
+        public String getHoTen() { return hoTen; }
+        public void setHoTen(String hoTen) { this.hoTen = hoTen; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
+        public String getKhoa() { return khoa; }
+        public void setKhoa(String khoa) { this.khoa = khoa; }
+        public String getBoMon() { return boMon; }
+        public void setBoMon(String boMon) { this.boMon = boMon; }
+    }
+
+    public static class UpdateUserRequest {
+        private String hoTen;
+        private String email;
+        private String role;
+        private String khoa;
+        private String boMon;
+
+        // Getters and setters
         public String getHoTen() { return hoTen; }
         public void setHoTen(String hoTen) { this.hoTen = hoTen; }
         public String getEmail() { return email; }
