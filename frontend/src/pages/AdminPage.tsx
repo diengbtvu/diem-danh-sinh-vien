@@ -130,6 +130,8 @@ export default function AdminPage() {
   const [userError, setUserError] = useState<string>('')
   const [userSuccess, setUserSuccess] = useState<string>('')
   const [createUserDialog, setCreateUserDialog] = useState(false)
+  const [editUserDialog, setEditUserDialog] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
   const [newUser, setNewUser] = useState<{
     username: string
     password: string
@@ -519,6 +521,44 @@ export default function AdminPage() {
       }
     } catch (e) {
       setUserError('Lỗi kết nối')
+    }
+  }
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user)
+    setEditUserDialog(true)
+  }
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return
+    setLoading(true)
+    setUserError('')
+    setUserSuccess('')
+    try {
+      const response = await apiRequest(`/api/admin/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hoTen: editingUser.hoTen,
+          email: editingUser.email,
+          role: editingUser.role,
+          khoa: editingUser.khoa,
+          boMon: editingUser.boMon
+        })
+      })
+      const result = await response.json().catch(() => ({}))
+      if (response.ok && (result.success ?? true)) {
+        setUserSuccess('Cập nhật thông tin thành công')
+        setEditUserDialog(false)
+        setEditingUser(null)
+        fetchUsers()
+      } else {
+        setUserError(result.message || 'Không thể cập nhật thông tin')
+      }
+    } catch (e) {
+      setUserError('Lỗi cập nhật thông tin')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -1344,9 +1384,18 @@ export default function AdminPage() {
                                   <Chip label={u.isActive ? 'Hoạt động' : 'Khóa'} color={u.isActive ? 'success' : 'error'} size="small" />
                                 </TableCell>
                                 <TableCell>
-                                  <IconButton onClick={() => handleToggleUserStatus(u.id)} color={u.isActive ? 'error' : 'success'} size="small">
-                                    {u.isActive ? <Block /> : <CheckCircle />}
-                                  </IconButton>
+                                  <Stack direction="row" spacing={1}>
+                                    <Tooltip title="Chỉnh sửa">
+                                      <IconButton onClick={() => handleEditUser(u)} color="primary" size="small">
+                                        <Edit />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title={u.isActive ? 'Khóa tài khoản' : 'Kích hoạt tài khoản'}>
+                                      <IconButton onClick={() => handleToggleUserStatus(u.id)} color={u.isActive ? 'error' : 'success'} size="small">
+                                        {u.isActive ? <Block /> : <CheckCircle />}
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Stack>
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -1381,6 +1430,65 @@ export default function AdminPage() {
                   <Button onClick={() => setCreateUserDialog(false)}>Hủy</Button>
                   <LoadingButton variant="contained" onClick={handleCreateUser} loading={loading}>
                     Tạo
+                  </LoadingButton>
+                </DialogActions>
+              </Dialog>
+
+              {/* Edit User Dialog */}
+              <Dialog open={editUserDialog} onClose={() => setEditUserDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Chỉnh sửa thông tin người dùng</DialogTitle>
+                <DialogContent>
+                  <Stack spacing={2} sx={{ mt: 1 }}>
+                    <TextField 
+                      label="Tên đăng nhập" 
+                      value={editingUser?.username || ''} 
+                      disabled 
+                      fullWidth 
+                    />
+                    <TextField 
+                      label="Họ tên" 
+                      value={editingUser?.hoTen || ''} 
+                      onChange={(e) => setEditingUser(prev => prev ? { ...prev, hoTen: e.target.value } : null)} 
+                      required 
+                      fullWidth 
+                    />
+                    <TextField 
+                      label="Email" 
+                      type="email" 
+                      value={editingUser?.email || ''} 
+                      onChange={(e) => setEditingUser(prev => prev ? { ...prev, email: e.target.value } : null)} 
+                      required 
+                      fullWidth 
+                    />
+                    <FormControl fullWidth>
+                      <InputLabel>Vai trò</InputLabel>
+                      <Select 
+                        value={editingUser?.role || ''} 
+                        label="Vai trò" 
+                        onChange={(e) => setEditingUser(prev => prev ? { ...prev, role: e.target.value as string } : null)}
+                      >
+                        <MenuItem value="ADMIN">Admin</MenuItem>
+                        <MenuItem value="GIANGVIEN">Giảng viên</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <TextField 
+                      label="Khoa" 
+                      value={editingUser?.khoa || ''} 
+                      onChange={(e) => setEditingUser(prev => prev ? { ...prev, khoa: e.target.value } : null)} 
+                      fullWidth 
+                    />
+                    <TextField 
+                      label="Bộ môn" 
+                      value={editingUser?.boMon || ''} 
+                      onChange={(e) => setEditingUser(prev => prev ? { ...prev, boMon: e.target.value } : null)} 
+                      fullWidth 
+                    />
+                  </Stack>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setEditUserDialog(false)}>Hủy</Button>
+                  <LoadingButton variant="contained" onClick={handleUpdateUser} loading={loading}>
+                    Cập nhật
                   </LoadingButton>
                 </DialogActions>
               </Dialog>
