@@ -28,7 +28,8 @@ import {
   Tab,
   Stack,
   Fade,
-  Tooltip
+  Tooltip,
+  IconButton
 } from '@mui/material';
 import {
   Dashboard,
