@@ -39,7 +39,7 @@ export default function AttendPage() {
   const [scanningProgress, setScanningProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
   const [submitted, setSubmitted] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<string>('')
+
 
   // Define steps for the attendance process
   const steps: Array<{label: string; description: string; status: 'completed' | 'active' | 'pending'}> = [
@@ -71,17 +71,17 @@ export default function AttendPage() {
   ]
 
   useEffect(() => {
-    console.log('AttendPage useEffect triggered, sessionToken:', sessionToken)
+
     if (!sessionToken) {
       setError('Thiếu token phiên (QR A). Hãy quét QR A trên màn hình lớp học.')
       setCurrentStep(0)
     } else {
       setCurrentStep(1)
       const sid = parseSessionIdFromSessionToken(sessionToken)
-      console.log('Parsed session ID:', sid)
+  
       if (sid) {
         // First check if QR A access is allowed
-        console.log('Checking QR A access for session:', sid)
+
         fetch(`/api/sessions/${encodeURIComponent(sid)}/qr-a-access`)
           .then(response => {
             if (response.status === 410) {
@@ -100,12 +100,12 @@ export default function AttendPage() {
             }
             
             // If access is allowed, proceed with QR2 activation
-            console.log('QR A access allowed, calling activate-qr2 API for session:', sid)
+            
             return fetch(`/api/sessions/${encodeURIComponent(sid)}/activate-qr2`, { method: 'POST' })
           })
           .then(response => {
             if (!response) return null // Already handled above
-            console.log('activate-qr2 response status:', response.status)
+
             if (response.status === 410) {
               setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
               return null
@@ -130,11 +130,11 @@ export default function AttendPage() {
           })
           .then(data => {
             if (data) {
-              console.log('activate-qr2 response data:', data)
+  
             }
           })
           .catch(error => {
-            console.error('QR access check or activate-qr2 error:', error)
+
             if (error.message.includes('Session has expired')) {
               setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
             } else if (error.message.includes('QR A đã được sử dụng')) {
@@ -160,18 +160,18 @@ export default function AttendPage() {
       try {
         pollCount++
         if (pollCount > maxPollCount) {
-          console.log('QR polling timeout after 10 minutes')
+  
           return
         }
 
         const response = await fetch(`/api/sessions/${sessionId}/status`)
         if (!response.ok) {
           if (response.status === 404 || response.status === 400) {
-            console.log('Session not found, stopping QR polling')
+  
             return
           }
           if (response.status === 410) {
-            console.log('Session has expired, stopping QR polling and showing error')
+
             setError('Phiên điểm danh đã hết hạn. Vui lòng quét lại QR A mới từ giảng viên.')
             return
           }
@@ -181,11 +181,11 @@ export default function AttendPage() {
         const data = await response.json()
         // DO NOT automatically set rotatingToken - student must manually scan QR B
         if (isActive && data.qr2Active && !rotatingToken) {
-          console.log('QR B is now active from server, but waiting for manual scan')
+
           // QR B is active but we don't auto-populate the token - user must scan manually
         }
       } catch (error) {
-        console.error('Error polling QR status:', error)
+
         // Continue polling despite errors
       }
     }
@@ -229,7 +229,7 @@ export default function AttendPage() {
   }, [])
 
   const handleQRDetected = useCallback((qrData: string) => {
-    console.log('QR detected:', qrData)
+
     setRotatingToken(qrData)
     setCurrentStep(3)
   }, [])
@@ -250,7 +250,7 @@ export default function AttendPage() {
 
       return response.ok
     } catch (error) {
-      console.error('Error validating QR B:', error)
+      
       return false
     }
   }, [sessionToken])
@@ -279,11 +279,11 @@ export default function AttendPage() {
       const blob = await dataUrlToBlob(previewUrl)
       
       // Step 1: Call Face API directly from frontend
-      console.log('Calling Face Recognition API...')
+
       let faceResult = null
       
       try {
-        setDebugInfo('📡 Đang gọi Face API...')
+
         const faceApiResponse = await fetch('/api/face-proxy/predict', {
           method: 'POST',
           body: (() => {
@@ -292,7 +292,7 @@ export default function AttendPage() {
             return formData
           })()
         })
-        setDebugInfo(`📡 Face API Status: ${faceApiResponse.status} ${faceApiResponse.statusText}`)
+
         
         if (faceApiResponse.ok) {
           faceResult = await faceApiResponse.json()
@@ -301,19 +301,19 @@ export default function AttendPage() {
           if (faceResult.success) {
             if (faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
               const detection = faceResult.detections[0]
-              setDebugInfo(`✅ Phát hiện: ${detection.class} (${(detection.confidence * 100).toFixed(1)}%)`)
+  
             } else {
-              setDebugInfo('⚠️ API thành công nhưng không phát hiện khuôn mặt')
+  
             }
           } else {
-            setDebugInfo('❌ Face API trả về success=false')
+
           }
         } else {
           const errorText = await faceApiResponse.text()
-          setDebugInfo(`❌ HTTP ${faceApiResponse.status}: ${errorText}`)
+
         }
       } catch (faceApiError) {
-        setDebugInfo(`❌ Lỗi kết nối: ${(faceApiError as Error).message || 'Không thể kết nối Face API'}`)
+
         // Don't throw here - continue with submission even if Face API fails
       }
       
@@ -339,31 +339,31 @@ export default function AttendPage() {
       
       // Check for duplicate attendance first
       if (json.isDuplicate === true) {
-        alert(`ℹ️ ${json.message || 'Bạn đã điểm danh rồi'}\nMSSV: ${json.mssv || 'Không xác định'}\nTên: ${json.hoTen || 'Không rõ'}\nThời gian điểm danh: ${json.capturedAt ? new Date(json.capturedAt).toLocaleString('vi-VN') : 'Không rõ'}`)
+                        alert(`${json.message || 'Bạn đã điểm danh rồi'}\nMSSV: ${json.mssv || 'Không xác định'}\nTên: ${json.hoTen || 'Không rõ'}\nThời gian điểm danh: ${json.capturedAt ? new Date(json.capturedAt).toLocaleString('vi-VN') : 'Không rõ'}`)
         return // Exit early for duplicate case
       }
       
       // Show alert based on face recognition result for new submissions
-      console.log('🎯 Final faceResult for alert:', JSON.stringify(faceResult, null, 2))
+
       
       if (faceResult && faceResult.success && faceResult.total_faces > 0 && faceResult.detections?.length > 0) {
         const detection = faceResult.detections[0]
         const mssv = detection.class?.split('_')[0] // Extract MSSV from "110122050_TranMinhDien"
         const name = detection.class?.split('_')[1] || 'Không rõ'
         
-        alert(`✅ Đã nhận dạng được sinh viên!\nMSSV: ${mssv}\nTên: ${name}\nĐộ tin cậy: ${(detection.confidence * 100).toFixed(1)}%`)
+        alert(`Đã nhận dạng được sinh viên!\nMSSV: ${mssv}\nTên: ${name}\nĐộ tin cậy: ${(detection.confidence * 100).toFixed(1)}%`)
       } else if (faceResult && faceResult.success === true && faceResult.total_faces === 0) {
-        alert('⚠️ Không nhận dạng được khuôn mặt!\nHệ thống đã lưu ảnh để giáo viên xem xét.')
+        alert('Không nhận dạng được khuôn mặt!\nHệ thống đã lưu ảnh để giáo viên xem xét.')
       } else if (faceResult && faceResult.success === false) {
-        alert(`❌ Lỗi từ hệ thống nhận dạng khuôn mặt!\nLỗi: ${faceResult.error || 'Không rõ'}\nĐiểm danh đã được lưu để giáo viên xem xét.`)
+        alert(`Lỗi từ hệ thống nhận dạng khuôn mặt!\nLỗi: ${faceResult.error || 'Không rõ'}\nĐiểm danh đã được lưu để giáo viên xem xét.`)
       } else {
-        console.log('🔍 No valid faceResult - proxy call might have failed')
-        alert('ℹ️ Không thể kết nối đến hệ thống nhận dạng khuôn mặt!\nĐiểm danh đã được lưu để giáo viên xem xét.')
+
+                        alert('Không thể kết nối đến hệ thống nhận dạng khuôn mặt!\nĐiểm danh đã được lưu để giáo viên xem xét.')
       }
       
     } catch (e: any) {
       setError(e.message || 'Có lỗi xảy ra')
-      alert('❌ Lỗi khi gửi điểm danh: ' + (e.message || 'Có lỗi xảy ra'))
+      alert('Lỗi khi gửi điểm danh: ' + (e.message || 'Có lỗi xảy ra'))
     } finally {
       setSubmitting(false)
     }
@@ -467,14 +467,7 @@ export default function AttendPage() {
                   </Alert>
                 )}
 
-                {/* Debug Info for Mobile Testing */}
-                {debugInfo && (
-                  <Alert severity="info" sx={{ mt: 2, fontSize: '0.9rem' }}>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                      🔍 DEBUG: {debugInfo}
-                    </Typography>
-                  </Alert>
-                )}
+
 
                 {!submitted && previewUrl && (
                   <Box sx={{ mt: 2 }}>

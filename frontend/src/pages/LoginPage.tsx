@@ -269,7 +269,7 @@ export const LoginPage: React.FC = () => {
                 <Typography variant="body2">
                   {attempts >= 3 
                     ? `⚠️ Cảnh báo: Đã thử ${attempts}/5 lần. Tài khoản sẽ bị khóa tạm thời sau 5 lần thử sai.`
-                    : `ℹ️ Lần thử thứ ${attempts}/5`
+                    : `Lần thử thứ ${attempts}/5`
                   }
                 </Typography>
               </Alert>

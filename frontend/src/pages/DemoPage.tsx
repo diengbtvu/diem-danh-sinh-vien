@@ -96,7 +96,7 @@ export const DemoPage: React.FC = () => {
           ) : (
             <Alert severity="info" sx={{ mb: 2 }}>
               <Typography variant="h6">
-                ℹ️ Chưa đăng nhập
+                Chưa đăng nhập
               </Typography>
               <Typography>
                 Hãy đăng nhập để trải nghiệm hệ thống phân quyền
