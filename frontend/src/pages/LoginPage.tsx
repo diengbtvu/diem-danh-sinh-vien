@@ -173,7 +173,7 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const isFormDisabled = loading || (lockoutTime && Date.now() < lockoutTime);
+  const isFormDisabled: boolean = loading || (lockoutTime !== null && Date.now() < lockoutTime);
 
   const theme = useTheme();
 
