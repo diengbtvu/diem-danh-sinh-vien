@@ -6,12 +6,6 @@ import {
   CardContent,
   Typography,
   Button,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Menu,
-  MenuItem,
-  Avatar,
   Chip,
   Table,
   TableBody,
@@ -58,6 +52,9 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { buildApiUrl, API_CONFIG } from '../config/api';
+import ProfessionalLayout from '../components/ProfessionalLayout';
+import StatCard from '../components/StatCard';
+import ChartCard from '../components/ChartCard';
 
 // Animation components
 const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
@@ -170,7 +167,6 @@ export const AdminDashboard: React.FC = () => {
 
   // UI states
   const [loading, setLoading] = useState(true);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [createUserDialog, setCreateUserDialog] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -529,52 +525,15 @@ export const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <AnimatedPage>
-      {/* App Bar */}
-      <AppBar position="static" elevation={0} sx={{ boxShadow: 'none', border: 'none' }}>
-        <Toolbar>
-          <Dashboard sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Admin Dashboard
-          </Typography>
-          
-          <Box display="flex" alignItems="center" gap={2}>
-            <Chip
-              icon={<AdminPanelSettings />}
-              label={user?.hoTen}
-              color="secondary"
-              variant="outlined"
-              sx={{ color: 'white', borderColor: 'white' }}
-            />
-            
-            <IconButton
-              onClick={(e) => setAnchorEl(e.currentTarget)}
-              sx={{ color: 'white' }}
-            >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-                {user?.hoTen?.charAt(0)}
-              </Avatar>
-            </IconButton>
-            
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={() => setAnchorEl(null)}
-            >
-              <MenuItem onClick={() => navigate('/profile')}>
-                <Person sx={{ mr: 1 }} /> Hồ sơ
-              </MenuItem>
-              <MenuItem onClick={() => navigate('/settings')}>
-                <Settings sx={{ mr: 1 }} /> Cài đặt
-              </MenuItem>
-              <MenuItem onClick={handleLogout}>
-                <ExitToApp sx={{ mr: 1 }} /> Đăng xuất
-              </MenuItem>
-            </Menu>
-          </Box>
-        </Toolbar>
-      </AppBar>
-
+    <ProfessionalLayout
+      headerProps={{
+        title: 'Bảng điều khiển quản trị',
+        subtitle: 'Tổng quan hệ thống & thống kê',
+        user: user ? { name: user.hoTen, role: user.role } : undefined,
+        onLogout: handleLogout,
+        showActions: true
+      }}
+    >
       <Box>
         {/* Alerts */}
         {error && (
@@ -637,83 +596,66 @@ export const AdminDashboard: React.FC = () => {
                   <StaggerItem>
                     <Grid container spacing={3} mb={4}>
                       <Grid item xs={12} sm={6} md={3}>
-                        <motion.div whileHover={{ scale: 1.02 }}>
-                          <Card>
-                            <CardContent>
-                              <Box display="flex" alignItems="center" justifyContent="space-between">
-                                <Box>
-                                  <Typography color="textSecondary" gutterBottom>
-                                    Tổng người dùng
-                                  </Typography>
-                                  <Typography variant="h4" fontWeight={600}>
-                                    {stats?.users?.total || 0}
-                                  </Typography>
-                                </Box>
-                                <People color="primary" sx={{ fontSize: 40 }} />
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
+                        <StatCard
+                          title="Tổng người dùng"
+                          value={stats?.users?.total || 0}
+                          icon={<People />}
+                          color="primary"
+                        />
                       </Grid>
-
                       <Grid item xs={12} sm={6} md={3}>
-                        <motion.div whileHover={{ scale: 1.02 }}>
-                          <Card>
-                            <CardContent>
-                              <Box display="flex" alignItems="center" justifyContent="space-between">
-                                <Box>
-                                  <Typography color="textSecondary" gutterBottom>
-                                    Giảng viên
-                                  </Typography>
-                                  <Typography variant="h4" fontWeight={600}>
-                                    {stats?.users?.giangVien || 0}
-                                  </Typography>
-                                </Box>
-                                <School color="secondary" sx={{ fontSize: 40 }} />
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
+                        <StatCard
+                          title="Giảng viên"
+                          value={stats?.users?.giangVien || 0}
+                          icon={<School />}
+                          color="secondary"
+                        />
                       </Grid>
-
                       <Grid item xs={12} sm={6} md={3}>
-                        <motion.div whileHover={{ scale: 1.02 }}>
-                          <Card>
-                            <CardContent>
-                              <Box display="flex" alignItems="center" justifyContent="space-between">
-                                <Box>
-                                  <Typography color="textSecondary" gutterBottom>
-                                    Phiên điểm danh
-                                  </Typography>
-                                  <Typography variant="h4" fontWeight={600}>
-                                    {stats?.sessions?.total || 0}
-                                  </Typography>
-                                </Box>
-                                <Assessment color="info" sx={{ fontSize: 40 }} />
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
+                        <StatCard
+                          title="Phiên điểm danh"
+                          value={stats?.sessions?.total || 0}
+                          icon={<Assessment />}
+                          color="info"
+                        />
                       </Grid>
-
                       <Grid item xs={12} sm={6} md={3}>
-                        <motion.div whileHover={{ scale: 1.02 }}>
-                          <Card>
-                            <CardContent>
-                              <Box display="flex" alignItems="center" justifyContent="space-between">
-                                <Box>
-                                  <Typography color="textSecondary" gutterBottom>
-                                    Sinh viên
-                                  </Typography>
-                                  <Typography variant="h4" fontWeight={600}>
-                                    {stats?.students?.total || 0}
-                                  </Typography>
-                                </Box>
-                                <People color="success" sx={{ fontSize: 40 }} />
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
+                        <StatCard
+                          title="Sinh viên"
+                          value={stats?.students?.total || 0}
+                          icon={<People />}
+                          color="success"
+                        />
+                      </Grid>
+                    </Grid>
+                  </StaggerItem>
+
+                  {/* Quick Charts */}
+                  <StaggerItem>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={8}>
+                        <ChartCard
+                          title="Tổng quan hệ thống"
+                          subtitle="Người dùng, phiên, sinh viên"
+                          type="bar"
+                          height={260}
+                          data={[
+                            { label: 'Người dùng', value: stats?.users?.total || 0 },
+                            { label: 'Phiên', value: stats?.sessions?.total || 0 },
+                            { label: 'Sinh viên', value: stats?.students?.total || 0 }
+                          ]}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <ChartCard
+                          title="Cơ cấu người dùng"
+                          type="pie"
+                          height={260}
+                          data={[
+                            { label: 'Admin', value: stats?.users?.admins || 0 },
+                            { label: 'Giảng viên', value: stats?.users?.giangVien || 0 }
+                          ]}
+                        />
                       </Grid>
                     </Grid>
                   </StaggerItem>
@@ -1187,6 +1129,6 @@ export const AdminDashboard: React.FC = () => {
           <Button onClick={handleCreateUser} variant="contained">Tạo</Button>
         </DialogActions>
       </Dialog>
-    </AnimatedPage>
+    </ProfessionalLayout>
   );
 };
