@@ -249,7 +249,7 @@ public class SessionController {
     @PostMapping("/simple")
     public CreateSessionResponse createSimple(@RequestBody CreateSessionSimpleRequest req) {
         // Validate class exists
-        if (!classRepository.existsById(req.getMaLop())) {
+        if (!classRepository.existsByMaLop(req.getMaLop())) {
             throw new IllegalArgumentException("Mã lớp không tồn tại: " + req.getMaLop());
         }
 

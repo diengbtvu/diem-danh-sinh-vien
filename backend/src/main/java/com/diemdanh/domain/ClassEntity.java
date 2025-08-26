@@ -6,11 +6,16 @@ import lombok.Data;
 import java.time.Instant;
 
 @Entity
-@Table(name = "classes")
+@Table(name = "classes", 
+       uniqueConstraints = @UniqueConstraint(columnNames = {"ma_lop", "created_by_username"}))
 @Data
 public class ClassEntity {
     @Id
-    @Column(name = "ma_lop", length = 50)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "ma_lop", length = 50, nullable = false)
     private String maLop;
 
     @Column(name = "ten_lop", length = 200)

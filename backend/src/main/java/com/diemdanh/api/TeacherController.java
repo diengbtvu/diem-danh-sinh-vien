@@ -269,12 +269,12 @@ public class TeacherController {
         }
 
         try {
-            // Check if class already exists
-            if (classRepository.existsById(maLop)) {
+            // Check if this teacher already created this class code
+            if (classRepository.existsByMaLopAndCreatedByUsername(maLop, currentUsername)) {
                 return ResponseEntity
                     .status(409)
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body("Mã lớp đã tồn tại");
+                    .body("Bạn đã tạo lớp với mã này rồi");
             }
 
             ClassEntity classEntity = new ClassEntity();
@@ -301,8 +301,8 @@ public class TeacherController {
         }
 
         try {
-            ClassEntity classEntity = classRepository.findById(maLop).orElse(null);
-            if (classEntity == null || !classEntity.getCreatedByUsername().equals(currentUsername)) {
+            ClassEntity classEntity = classRepository.findByMaLopAndCreatedByUsername(maLop, currentUsername);
+            if (classEntity == null) {
                 return ResponseEntity.status(403).build(); // Not teacher's class
             }
 
@@ -334,12 +334,12 @@ public class TeacherController {
         }
 
         try {
-            ClassEntity classEntity = classRepository.findById(maLop).orElse(null);
-            if (classEntity == null || !classEntity.getCreatedByUsername().equals(currentUsername)) {
+            ClassEntity classEntity = classRepository.findByMaLopAndCreatedByUsername(maLop, currentUsername);
+            if (classEntity == null) {
                 return ResponseEntity.status(403).build(); // Not teacher's class
             }
 
-            classRepository.deleteById(maLop);
+            classRepository.delete(classEntity);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();

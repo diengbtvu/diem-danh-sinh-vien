@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ClassRepository extends JpaRepository<ClassEntity, String> {
+public interface ClassRepository extends JpaRepository<ClassEntity, Long> {
     
     /**
      * Find classes created by a specific teacher
@@ -51,4 +51,19 @@ public interface ClassRepository extends JpaRepository<ClassEntity, String> {
      * Count classes created by a teacher
      */
     long countByCreatedByUsername(String username);
+    
+    /**
+     * Check if a teacher already created a specific class code
+     */
+    boolean existsByMaLopAndCreatedByUsername(String maLop, String createdByUsername);
+    
+    /**
+     * Find class by code and teacher
+     */
+    ClassEntity findByMaLopAndCreatedByUsername(String maLop, String createdByUsername);
+    
+    /**
+     * Check if any class with this code exists (regardless of teacher)
+     */
+    boolean existsByMaLop(String maLop);
 }
