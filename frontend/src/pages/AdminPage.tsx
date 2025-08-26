@@ -1383,8 +1383,8 @@ export default function AdminPage() {
                                 <TableCell>
                                   <Chip label={u.isActive ? 'Hoạt động' : 'Khóa'} color={u.isActive ? 'success' : 'error'} size="small" />
                                 </TableCell>
-                                <TableCell>
-                                  <Stack direction="row" spacing={1}>
+                                <TableCell sx={{ minWidth: 120 }}>
+                                  <Stack direction="row" spacing={1} alignItems="center">
                                     <Tooltip title="Chỉnh sửa">
                                       <IconButton onClick={() => handleEditUser(u)} color="primary" size="small">
                                         <Edit />
