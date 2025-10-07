@@ -20,7 +20,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import lombok.Data;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -545,5 +547,73 @@ public class TeacherController {
         stats.put("rejected", rejected);
 
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Get real-time statistics for a session (only for sessions created by this teacher)
+     */
+    @GetMapping("/stats/realtime/{sessionId}")
+    public ResponseEntity<RealtimeStats> getRealtimeStats(@PathVariable String sessionId) {
+        String currentUsername = getCurrentUsername();
+        if (currentUsername == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        // Verify session belongs to this teacher
+        SessionEntity session = sessionRepository.findBySessionIdAndCreatedByUsername(sessionId, currentUsername);
+        if (session == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            // Get basic stats
+            long total = attendanceRepository.countBySessionId(sessionId);
+            long accepted = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.ACCEPTED);
+            long review = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.REVIEW);
+            long rejected = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceEntity.Status.REJECTED);
+
+            // Get recent activity (last 5 minutes)
+            Instant fiveMinutesAgo = Instant.now().minusSeconds(5 * 60);
+            List<AttendanceEntity> recentAttendances = attendanceRepository.findBySessionIdAndDateRange(
+                sessionId, fiveMinutesAgo, Instant.now()
+            );
+
+            RealtimeStats realtimeStats = new RealtimeStats();
+            realtimeStats.setSessionId(sessionId);
+            realtimeStats.setTotal(total);
+            realtimeStats.setAccepted(accepted);
+            realtimeStats.setReview(review);
+            realtimeStats.setRejected(rejected);
+            realtimeStats.setRecentCount(recentAttendances.size());
+            realtimeStats.setLastUpdated(Instant.now().toString());
+
+            // Get latest attendance
+            if (!recentAttendances.isEmpty()) {
+                AttendanceEntity latest = recentAttendances.get(0);
+                realtimeStats.setLatestMssv(latest.getMssv());
+                realtimeStats.setLatestStatus(latest.getStatus().name());
+                realtimeStats.setLatestTime(latest.getCapturedAt().toString());
+            }
+
+            return ResponseEntity.ok(realtimeStats);
+        } catch (Exception e) {
+            System.err.println("Error getting realtime stats: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @Data
+    public static class RealtimeStats {
+        private String sessionId;
+        private long total;
+        private long accepted;
+        private long review;
+        private long rejected;
+        private long recentCount;
+        private String lastUpdated;
+        private String latestMssv;
+        private String latestStatus;
+        private String latestTime;
     }
 }

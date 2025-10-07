@@ -6,6 +6,7 @@ import {
 import {
   Refresh, TrendingUp, AccessTime, Person, CheckCircle, Warning, Error
 } from '@mui/icons-material'
+import { apiRequest } from '../config/api'
 
 interface RealtimeStats {
   sessionId: string
@@ -23,11 +24,13 @@ interface RealtimeStats {
 interface RealtimeStatsCardProps {
   sessionId: string
   refreshInterval?: number
+  apiPrefix?: string  // Add apiPrefix prop
 }
 
 export default function RealtimeStatsCard({ 
   sessionId, 
-  refreshInterval = 30000 // 30 seconds default
+  refreshInterval = 30000, // 30 seconds default
+  apiPrefix = '/api/admin'  // Default to admin
 }: RealtimeStatsCardProps) {
   const [stats, setStats] = useState<RealtimeStats | null>(null)
   const [loading, setLoading] = useState(false)
@@ -41,8 +44,8 @@ export default function RealtimeStatsCard({
     setError(null)
 
     try {
-      console.log('Fetching realtime stats for:', sessionId)
-      const response = await fetch(`/api/admin/stats/realtime/${sessionId}`)
+      console.log('Fetching realtime stats for:', sessionId, 'with apiPrefix:', apiPrefix)
+      const response = await apiRequest(`${apiPrefix}/stats/realtime/${sessionId}`)
       console.log('Realtime stats response:', response.status)
       if (response.ok) {
         const data = await response.json()
@@ -50,6 +53,8 @@ export default function RealtimeStatsCard({
         setStats(data)
         setLastRefresh(new Date())
       } else {
+        const errorText = await response.text()
+        console.error('Failed to fetch realtime stats:', response.status, errorText)
         setError('Không thể tải dữ liệu thống kê')
       }
     } catch (err) {
@@ -66,7 +71,7 @@ export default function RealtimeStatsCard({
     const interval = setInterval(fetchRealtimeStats, refreshInterval)
     
     return () => clearInterval(interval)
-  }, [sessionId, refreshInterval])
+  }, [sessionId, refreshInterval, apiPrefix])
 
   const getStatusColor = (status: string) => {
     switch (status) {

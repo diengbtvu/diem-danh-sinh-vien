@@ -13,12 +13,14 @@ import LoadingButton from '../components/LoadingButton'
 import DataTable from '../components/DataTable'
 import StatusDistributionCard from '../components/StatusDistributionCard'
 import RealtimeStatsCard from '../components/RealtimeStatsCard'
+import { apiRequest } from '../config/api'
 
 type Attendance = {
   id: string
   sessionId: string
   mssv: string
   capturedAt: string
+  imageUrl?: string
   faceLabel: string
   faceConfidence: number
   status: 'ACCEPTED' | 'REVIEW' | 'REJECTED'
@@ -58,11 +60,36 @@ export default function AttendanceDetailPage() {
   const [page, setPage] = useState(0)
   const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null)
   const [stats, setStats] = useState<{ total: number; accepted: number; review: number; rejected: number } | null>(null)
+  const [viewingImage, setViewingImage] = useState<string | null>(null)
 
   // Search and filter states
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [sort, setSort] = useState({ column: 'capturedAt', direction: 'desc' })
+
+  // Get user role from localStorage
+  const getUserRole = () => {
+    try {
+      const stored = localStorage.getItem('diemdanh_auth')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        return parsed?.user?.role as string | undefined
+      }
+    } catch {
+      return undefined
+    }
+    return undefined
+  }
+
+  const userRole = getUserRole()
+  const isAdmin = userRole === 'ADMIN'
+  const isTeacher = userRole === 'GIANGVIEN'
+
+  // API prefix based on role
+  const apiPrefix = isAdmin ? '/api/admin' : isTeacher ? '/api/teacher' : '/api/admin'
+  
+  // Debug logs
+  console.log('User role:', userRole, 'isAdmin:', isAdmin, 'isTeacher:', isTeacher, 'apiPrefix:', apiPrefix)
 
   const fetchSession = useCallback(async () => {
     if (!sessionId) {
@@ -71,7 +98,7 @@ export default function AttendanceDetailPage() {
       return
     }
     try {
-      const response = await fetch(`/api/admin/sessions/${sessionId}`)
+      const response = await apiRequest(`${apiPrefix}/sessions/${sessionId}`)
       if (response.ok) {
         const data = await response.json()
         setSession(data)
@@ -79,21 +106,34 @@ export default function AttendanceDetailPage() {
     } catch (error) {
       console.error('Error fetching session:', error)
     }
-  }, [sessionId])
+  }, [sessionId, apiPrefix])
 
   const fetchAttendances = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        size: '20',
-        sortBy: sort.column,
-        sortDir: sort.direction,
-        ...(sessionId && { sessionId }),
-        ...(search && { search }),
-        ...(statusFilter && { status: statusFilter })
-      })
-      const response = await fetch(`/api/admin/attendances?${params}`)
+      let endpoint = ''
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+      params.append('size', '20')
+      params.append('sortBy', sort.column)
+      params.append('sortDir', sort.direction)
+      if (search) params.append('search', search)
+      if (statusFilter) params.append('status', statusFilter)
+
+      if (isTeacher && sessionId) {
+        // Teacher API: /api/teacher/sessions/{sessionId}/attendances
+        endpoint = `${apiPrefix}/sessions/${sessionId}/attendances?${params.toString()}`
+      } else if (isAdmin) {
+        // Admin API: /api/admin/attendances?sessionId=...
+        if (sessionId) {
+          params.append('sessionId', sessionId)
+        }
+        endpoint = `${apiPrefix}/attendances?${params.toString()}`
+      } else {
+        throw new Error('Unauthorized')
+      }
+
+      const response = await apiRequest(endpoint)
       if (response.ok) {
         const data = await response.json()
         setAttendances(data)
@@ -103,14 +143,26 @@ export default function AttendanceDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [sessionId, page, sort, search, statusFilter])
+  }, [sessionId, page, sort, search, statusFilter, apiPrefix, isAdmin, isTeacher])
 
   const fetchStats = useCallback(async () => {
     try {
       if (sessionId) {
         // Fetch stats for specific session
         console.log('Fetching stats for sessionId:', sessionId)
-        const response = await fetch(`/api/admin/stats/${sessionId}`)
+        let endpoint = ''
+        
+        if (isTeacher) {
+          // Teacher API: /api/teacher/sessions/{sessionId}/stats
+          endpoint = `${apiPrefix}/sessions/${sessionId}/stats`
+        } else if (isAdmin) {
+          // Admin API: /api/admin/stats/{sessionId}
+          endpoint = `${apiPrefix}/stats/${sessionId}`
+        } else {
+          throw new Error('Unauthorized')
+        }
+
+        const response = await apiRequest(endpoint)
         console.log('Stats response status:', response.status)
         if (response.ok) {
           const data = await response.json()
@@ -120,27 +172,29 @@ export default function AttendanceDetailPage() {
           console.error('Failed to fetch stats:', response.status, response.statusText)
         }
       } else {
-        // Fetch dashboard stats (all sessions)
-        console.log('Fetching dashboard stats (all sessions)')
-        const response = await fetch('/api/admin/dashboard/stats')
-        console.log('Dashboard stats response status:', response.status)
-        if (response.ok) {
-          const data = await response.json()
-          console.log('Dashboard stats data received:', data)
-          setStats(data)
-        } else {
-          console.error('Failed to fetch dashboard stats:', response.status, response.statusText)
+        // Fetch dashboard stats (all sessions) - only for admin
+        if (isAdmin) {
+          console.log('Fetching dashboard stats (all sessions)')
+          const response = await apiRequest('/api/admin/dashboard/stats')
+          console.log('Dashboard stats response status:', response.status)
+          if (response.ok) {
+            const data = await response.json()
+            console.log('Dashboard stats data received:', data)
+            setStats(data)
+          } else {
+            console.error('Failed to fetch dashboard stats:', response.status, response.statusText)
+          }
         }
       }
     } catch (error) {
       console.error('Error fetching stats:', error)
     }
-  }, [sessionId])
+  }, [sessionId, apiPrefix, isAdmin, isTeacher])
 
   const fetchStudents = useCallback(async () => {
     if (!session?.maLop) return
     try {
-      const response = await fetch(`/api/admin/students?maLop=${session.maLop}&size=1000`)
+      const response = await apiRequest(`${apiPrefix}/students?maLop=${session.maLop}&size=1000`)
       if (response.ok) {
         const data = await response.json()
         setStudents(data.content || [])
@@ -148,7 +202,7 @@ export default function AttendanceDetailPage() {
     } catch (error) {
       console.error('Error fetching students:', error)
     }
-  }, [session?.maLop])
+  }, [session?.maLop, apiPrefix])
 
   useEffect(() => {
     if (sessionId) {
@@ -176,10 +230,10 @@ export default function AttendanceDetailPage() {
   }, [session, fetchStudents])
 
   const updateAttendance = async () => {
-    if (!editingAttendance) return
+    if (!editingAttendance || !isAdmin) return // Only admin can edit
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/attendances/${editingAttendance.id}`, {
+      const response = await apiRequest(`/api/admin/attendances/${editingAttendance.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -198,10 +252,11 @@ export default function AttendanceDetailPage() {
   }
 
   const deleteAttendance = async (id: string) => {
+    if (!isAdmin) return // Only admin can delete
     if (!confirm('Bạn có chắc muốn xóa bản ghi điểm danh này?')) return
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/attendances/${id}`, {
+      const response = await apiRequest(`/api/admin/attendances/${id}`, {
         method: 'DELETE'
       })
       if (response.ok) {
@@ -226,7 +281,7 @@ export default function AttendanceDetailPage() {
         ? `/api/admin/export/detailed/${sessionId}`
         : `/api/admin/export/${sessionId}`
 
-      const response = await fetch(endpoint)
+      const response = await apiRequest(endpoint)
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
@@ -374,6 +429,7 @@ export default function AttendanceDetailPage() {
                 <RealtimeStatsCard
                   sessionId={sessionId || ''}
                   refreshInterval={30000}
+                  apiPrefix={apiPrefix}
                 />
               </Grid>
             </Grid>
@@ -452,6 +508,48 @@ export default function AttendanceDetailPage() {
           <DataTable
             columns={[
               {
+                id: 'imageUrl',
+                label: 'Ảnh',
+                format: (value: any, row: any) => (
+                  value ? (
+                    <Box
+                      component="img"
+                      src={value}
+                      alt="Student"
+                      sx={{
+                        width: 60,
+                        height: 60,
+                        objectFit: 'cover',
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        border: '2px solid #e0e0e0',
+                        '&:hover': {
+                          border: '2px solid #1976d2',
+                          transform: 'scale(1.05)',
+                          transition: 'all 0.2s'
+                        }
+                      }}
+                      onClick={() => setViewingImage(value)}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        width: 60,
+                        height: 60,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: '#f5f5f5',
+                        borderRadius: 1,
+                        color: '#999'
+                      }}
+                    >
+                      N/A
+                    </Box>
+                  )
+                )
+              },
+              {
                 id: 'mssv',
                 label: 'MSSV',
                 sortable: true
@@ -500,7 +598,7 @@ export default function AttendanceDetailPage() {
             onSearch={setSearch}
             searchPlaceholder="Tìm kiếm điểm danh..."
             loading={loading}
-            actions={[
+            actions={isAdmin ? [
               {
                 label: 'Chỉnh sửa',
                 icon: <Edit />,
@@ -513,7 +611,7 @@ export default function AttendanceDetailPage() {
                 onClick: (row) => deleteAttendance(row.id),
                 color: 'error'
               }
-            ]}
+            ] : []}
           />
         </Paper>
 
@@ -601,6 +699,47 @@ export default function AttendanceDetailPage() {
             >
               Cập nhật
             </LoadingButton>
+          </DialogActions>
+        </Dialog>
+
+        {/* Image Viewer Dialog */}
+        <Dialog
+          open={viewingImage !== null}
+          onClose={() => setViewingImage(null)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            Ảnh điểm danh
+          </DialogTitle>
+          <DialogContent>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: 300
+              }}
+            >
+              {viewingImage && (
+                <Box
+                  component="img"
+                  src={viewingImage}
+                  alt="Student attendance"
+                  sx={{
+                    maxWidth: '100%',
+                    maxHeight: '70vh',
+                    objectFit: 'contain',
+                    borderRadius: 2
+                  }}
+                />
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setViewingImage(null)}>
+              Đóng
+            </Button>
           </DialogActions>
         </Dialog>
       </Container>

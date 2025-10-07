@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   Card, CardContent, Typography, Box, Grid, Chip, Button, Dialog,
   DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText,
-  ListItemIcon, IconButton, Tooltip, Stack, LinearProgress
+  ListItemIcon, IconButton, Tooltip, Stack, LinearProgress, ListItemButton
 } from '@mui/material'
 import {
   CheckCircle, Warning, Error, Visibility, Edit, TrendingUp,
@@ -288,8 +288,7 @@ export default function StatusDistributionCard({
           <List>
             {stats.review > 0 && (
               <>
-                <ListItem
-                  button
+                <ListItemButton
                   onClick={() => handleBulkUpdate('review', 'accepted')}
                   sx={{ border: 1, borderColor: 'grey.300', borderRadius: 1, mb: 1 }}
                 >
@@ -300,9 +299,8 @@ export default function StatusDistributionCard({
                     primary={`Chuyển ${stats.review} bản ghi "Cần xem xét" thành "Thành công"`}
                     secondary="Áp dụng cho tất cả bản ghi đang cần xem xét"
                   />
-                </ListItem>
-                <ListItem
-                  button
+                </ListItemButton>
+                <ListItemButton
                   onClick={() => handleBulkUpdate('review', 'rejected')}
                   sx={{ border: 1, borderColor: 'grey.300', borderRadius: 1, mb: 1 }}
                 >
@@ -313,12 +311,11 @@ export default function StatusDistributionCard({
                     primary={`Chuyển ${stats.review} bản ghi "Cần xem xét" thành "Thất bại"`}
                     secondary="Áp dụng cho tất cả bản ghi đang cần xem xét"
                   />
-                </ListItem>
+                </ListItemButton>
               </>
             )}
             {stats.rejected > 0 && (
-              <ListItem
-                button
+              <ListItemButton
                 onClick={() => handleBulkUpdate('rejected', 'review')}
                 sx={{ border: 1, borderColor: 'grey.300', borderRadius: 1, mb: 1 }}
               >
@@ -329,7 +326,7 @@ export default function StatusDistributionCard({
                   primary={`Chuyển ${stats.rejected} bản ghi "Thất bại" thành "Cần xem xét"`}
                   secondary="Để xem xét lại các trường hợp bị từ chối"
                 />
-              </ListItem>
+              </ListItemButton>
             )}
           </List>
         </DialogContent>
