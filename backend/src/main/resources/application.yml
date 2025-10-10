@@ -2,8 +2,8 @@ spring:
   datasource:
     url: jdbc:mysql://14.225.220.60:3306/attendance?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: phuocthuy
-    password: PhuocThuy@2A054C17@123123321@1111
+    username: root
+    password: 2A054C17@aA@2A054C17**
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,10 +17,11 @@ server:
   forward-headers-strategy: framework
 
 app:
-  faceApiUrl: http://apimaycogiau.zettix.net
+  faceApiUrl: https://server.zettix.net
   rotateSeconds: 20
   hmacSecret: change-me
   frontendHost: https://diemdanh.zettix.net
+  uploadPath: /root/Desktop/diem-danh-sinh-vien/uploads
 
 # Attendance system configuration
 attendance:

@@ -21,45 +21,34 @@ import java.util.List;
 public class FaceApiClient {
     private final WebClient webClient;
 
-    // Base URL should be like: http://apimaycogiau.zettix.net
+    // Base URL should be like: https://server.zettix.net
     public FaceApiClient(@Value("${app.faceApiUrl}") String baseUrl) {
-        this.webClient = WebClient.builder().baseUrl(baseUrl).build();
+        this.webClient = WebClient.builder()
+                .baseUrl(baseUrl)
+                .codecs(configurer -> configurer
+                        .defaultCodecs()
+                        .maxInMemorySize(10 * 1024 * 1024)) // 10MB limit
+                .build();
     }
 
     public Mono<RecognizeResponse> recognize(byte[] imageBytes, String filename) {
         log.info("Face API request: imageSize={} bytes, filename={}", imageBytes.length, filename);
         
-        // Ensure filename has proper extension
-        String safeFilename = filename;
-        if (safeFilename == null || safeFilename.isEmpty()) {
-            safeFilename = "image.jpg";
-        } else if (!safeFilename.toLowerCase().endsWith(".jpg") && !safeFilename.toLowerCase().endsWith(".jpeg")) {
-            safeFilename = safeFilename + ".jpg";
-        }
+        // Convert image to base64
+        String base64Image = java.util.Base64.getEncoder().encodeToString(imageBytes);
         
-        final String finalFilename = safeFilename;
-        ByteArrayResource resource = new ByteArrayResource(imageBytes) {
-            @Override
-            public String getFilename() { 
-                return finalFilename;
-            }
-        };
+        // Create JSON payload
+        java.util.Map<String, String> payload = new java.util.HashMap<>();
+        payload.put("image", base64Image);
 
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        // Build multipart exactly like curl: -F 'image=@file.jpg;type=image/jpeg'
-        // Don't set MediaType in part() - let Spring auto-detect from filename
-        builder.part("image", resource)
-                .filename(finalFilename)
-                .contentType(MediaType.IMAGE_JPEG);
-
-        // Call the real API: /api/v1/face-recognition/predict/file
-        log.info("Sending Face API request to: {}/api/v1/face-recognition/predict/file", webClient);
+        // Call the real API: /api/v1/face-recognition/predict/base64
+        log.info("Sending Face API request (base64) to: {}/api/v1/face-recognition/predict/base64, size={} bytes", webClient, imageBytes.length);
         
         return webClient.post()
-                .uri("/api/v1/face-recognition/predict/file")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .uri("/api/v1/face-recognition/predict/base64")
+                .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromMultipartData(builder.build()))
+                .bodyValue(payload)
                 .retrieve()
                 .bodyToMono(ExternalResponse.class)
                 .timeout(Duration.ofSeconds(15))

@@ -66,6 +66,7 @@ public class AttendanceController {
         }
 
         byte[] bytes = image.getBytes();
+        
         var faceResp = faceApiClient.recognize(bytes, image.getOriginalFilename() != null ? image.getOriginalFilename() : "image.jpg").block();
         String label = faceResp != null ? faceResp.getLabel() : null;
         Double confidence = faceResp != null ? faceResp.getConfidence() : null;
@@ -90,6 +91,7 @@ public class AttendanceController {
         record.setFaceLabel(label);
         record.setFaceConfidence(confidence);
         record.setStatus(status);
+        record.setImageData(bytes);  // Lưu ảnh trực tiếp vào DB
         AttendanceEntity saved = attendanceRepository.save(record);
 
         // Send real-time notification
@@ -125,6 +127,19 @@ public class AttendanceController {
                                        @RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "20") int size) {
         return attendanceRepository.findBySessionId(sessionId, PageRequest.of(page, size));
+    }
+
+    @GetMapping("/{id}/image")
+    public org.springframework.http.ResponseEntity<byte[]> getAttendanceImage(@PathVariable java.util.UUID id) {
+        var attendance = attendanceRepository.findById(id).orElse(null);
+        if (attendance == null || attendance.getImageData() == null) {
+            return org.springframework.http.ResponseEntity.notFound().build();
+        }
+        
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "max-age=3600")
+                .body(attendance.getImageData());
     }
 
     private String parseSessionId(String token) {

@@ -1,5 +1,7 @@
 package com.diemdanh.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,7 +34,13 @@ public class AttendanceEntity {
     private Instant capturedAt;
 
     @Column(name = "image_url")
+    @JsonIgnore  // Không sử dụng field này nữa
     private String imageUrl;
+
+    @Lob
+    @Column(name = "image_data", columnDefinition = "LONGBLOB")
+    @JsonIgnore  // Ẩn binary data khỏi JSON response
+    private byte[] imageData;
 
     @Column(name = "face_label")
     private String faceLabel;
@@ -49,5 +57,14 @@ public class AttendanceEntity {
 
     public enum Status {
         ACCEPTED, REVIEW, REJECTED
+    }
+
+    // Computed field cho frontend - trả về URL để lấy ảnh
+    @JsonProperty("imageUrl")
+    public String getImageUrl() {
+        if (imageData != null && imageData.length > 0) {
+            return "/api/attendances/" + id + "/image";
+        }
+        return null;
     }
 }

@@ -38,6 +38,7 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/attendances").permitAll() // Cho phép điểm danh không cần đăng nhập
+                .requestMatchers("/api/attendances/*/image").permitAll() // Cho phép xem ảnh điểm danh công khai
                 .requestMatchers("/api/sessions/validate").permitAll() // Validate session token
                 .requestMatchers("/api/sessions/current").permitAll() // Get current session
                 .requestMatchers("/api/sessions/*/activate-qr2").permitAll() // Cho phép sinh viên kích hoạt QR B
