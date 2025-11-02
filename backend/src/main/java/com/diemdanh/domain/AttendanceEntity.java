@@ -28,6 +28,11 @@ public class AttendanceEntity {
 
     @Column(name = "mssv", length = 32)
     private String mssv;
+    
+    // Transient field for student info (not persisted in DB)
+    @Transient
+    @JsonProperty("student")
+    private StudentEntity studentInfo;
 
     @CreationTimestamp
     @Column(name = "captured_at", nullable = false, updatable = false)

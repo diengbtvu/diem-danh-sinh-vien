@@ -13,7 +13,7 @@ interface Column {
   label: string
   minWidth?: number
   align?: 'right' | 'left' | 'center'
-  format?: (value: any) => string | React.ReactNode
+  format?: (value: any, row?: any) => string | React.ReactNode
   sortable?: boolean
 }
 
@@ -225,7 +225,7 @@ export default function DataTable({
                   )}
                   {columns.map((column) => (
                     <TableCell key={column.id} align={column.align}>
-                      {column.format ? column.format(row[column.id]) : row[column.id]}
+                      {column.format ? column.format(row[column.id], row) : row[column.id]}
                     </TableCell>
                   ))}
                   {actions.length > 0 && (

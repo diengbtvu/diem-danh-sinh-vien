@@ -13,6 +13,10 @@ import SimpleAttendanceDetailPage from './pages/SimpleAttendanceDetailPage'
 import { LoginPage } from './pages/LoginPage'
 import { AdminDashboard } from './pages/AdminDashboard'
 import { TeacherDashboard } from './pages/TeacherDashboard'
+import { NewAdminDashboard } from './pages/NewAdminDashboard'
+import { NewTeacherDashboard } from './pages/NewTeacherDashboard'
+import { AnalyticsPage } from './pages/AnalyticsPage'
+import StatisticsPage from './pages/StatisticsPage'
 import { AuthTestPage } from './pages/AuthTestPage'
 import { DemoPage } from './pages/DemoPage'
 import QRWidgetDemo from './pages/QRWidgetDemo'
@@ -66,12 +70,22 @@ function App() {
           } />
           <Route path="/admin-dashboard" element={
             <AdminRoute>
+              <NewAdminDashboard />
+            </AdminRoute>
+          } />
+          <Route path="/admin-dashboard-old" element={
+            <AdminRoute>
               <AdminDashboard />
             </AdminRoute>
           } />
 
           {/* Teacher routes (both ADMIN and GIANGVIEN can access) */}
           <Route path="/teacher-dashboard" element={
+            <TeacherRoute>
+              <NewTeacherDashboard />
+            </TeacherRoute>
+          } />
+          <Route path="/teacher-dashboard-old" element={
             <TeacherRoute>
               <TeacherDashboard />
             </TeacherRoute>
@@ -84,6 +98,16 @@ function App() {
           <Route path="/attendance-detail" element={
             <TeacherRoute>
               <AttendanceDetailPage />
+            </TeacherRoute>
+          } />
+          <Route path="/analytics" element={
+            <TeacherRoute>
+              <AnalyticsPage />
+            </TeacherRoute>
+          } />
+          <Route path="/statistics" element={
+            <TeacherRoute>
+              <StatisticsPage />
             </TeacherRoute>
           } />
 

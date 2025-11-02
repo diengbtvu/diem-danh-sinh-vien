@@ -53,6 +53,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/teacher/**").hasAnyRole("ADMIN", "GIANGVIEN")
                 .requestMatchers("/api/analytics/**").hasAnyRole("ADMIN", "GIANGVIEN")
                 .requestMatchers("/api/integrations/**").hasAnyRole("ADMIN", "GIANGVIEN")
+                .requestMatchers("/api/statistics/**").hasAnyRole("ADMIN", "GIANGVIEN")
+                
+                // Student management - ADMIN only
+                .requestMatchers("/api/admin/students/**").hasRole("ADMIN")
                 
                 // Tất cả các endpoint khác cần authentication
                 .anyRequest().authenticated()

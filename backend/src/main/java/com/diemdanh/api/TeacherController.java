@@ -342,102 +342,8 @@ public class TeacherController {
         }
     }
 
-    /**
-     * Create a new student (only for teacher's classes)
-     */
-    @PostMapping(value = "/students", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<StudentEntity> createStudent(@RequestBody Map<String, String> request) {
-        String currentUsername = getCurrentUsername();
-        if (currentUsername == null) {
-            return ResponseEntity.status(401).build();
-        }
-
-        String mssv = request.get("mssv");
-        String hoTen = request.get("hoTen");
-        String maLop = request.get("maLop");
-
-        if (mssv == null || hoTen == null || maLop == null) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        // Check if teacher has access to this class
-        List<String> teacherClasses = classRepository.findMaLopByCreatedByUsername(currentUsername);
-        if (!teacherClasses.contains(maLop.trim())) {
-            return ResponseEntity.status(403).build(); // Forbidden - not teacher's class
-        }
-
-        try {
-            // Check if student already exists
-            if (studentRepository.existsById(mssv.trim())) {
-                return ResponseEntity.badRequest().build();
-            }
-
-            StudentEntity student = new StudentEntity();
-            student.setMssv(mssv.trim());
-            student.setMaLop(maLop.trim());
-            student.setHoTen(hoTen.trim());
-
-            StudentEntity saved = studentRepository.save(student);
-            return ResponseEntity.ok(saved);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * Import students via CSV (only for teacher's classes)
-     */
-    @PostMapping(value = "/students/import", consumes = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<List<StudentEntity>> importStudents(@RequestBody String csv) {
-        String currentUsername = getCurrentUsername();
-        if (currentUsername == null) {
-            return ResponseEntity.status(401).build();
-        }
-
-        // Get teacher's classes
-        List<String> teacherClasses = classRepository.findMaLopByCreatedByUsername(currentUsername);
-        if (teacherClasses.isEmpty()) {
-            return ResponseEntity.status(403).build(); // Teacher has no classes
-        }
-
-        try {
-            String[] lines = csv.split("\n");
-            boolean hasHeader = lines.length > 0 && lines[0].toLowerCase().contains("mssv");
-            List<StudentEntity> batch = new java.util.ArrayList<>();
-
-            for (int i = hasHeader ? 1 : 0; i < lines.length; i++) {
-                String line = lines[i].trim();
-                if (line.isEmpty()) continue;
-                String[] cols = line.split(",");
-                if (cols.length < 3) continue;
-
-                String mssv = cols[0].trim();
-                String hoTen = cols[1].trim();
-                String maLop = cols[2].trim();
-
-                // Check if teacher has access to this class
-                if (!teacherClasses.contains(maLop)) {
-                    continue; // Skip students not in teacher's classes
-                }
-
-                // Skip if student already exists
-                if (studentRepository.existsById(mssv)) {
-                    continue;
-                }
-
-                StudentEntity s = new StudentEntity();
-                s.setMssv(mssv);
-                s.setMaLop(maLop);
-                s.setHoTen(hoTen);
-                batch.add(s);
-            }
-
-            List<StudentEntity> saved = studentRepository.saveAll(batch);
-            return ResponseEntity.ok(saved);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
+    // REMOVED: Student import is now ADMIN-only
+    // Teachers can only view students in their classes
 
     /**
      * Get session details (only for sessions created by this teacher)
@@ -615,5 +521,77 @@ public class TeacherController {
         private String latestMssv;
         private String latestStatus;
         private String latestTime;
+    }
+
+    /**
+     * Update attendance record (only for teacher's sessions)
+     */
+    @PutMapping("/attendances/{id}")
+    public ResponseEntity<?> updateAttendance(
+            @PathVariable java.util.UUID id,
+            @RequestBody Map<String, Object> updates) {
+        
+        String currentUsername = getCurrentUsername();
+        if (currentUsername == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        try {
+            AttendanceEntity attendance = attendanceRepository.findById(id).orElse(null);
+            if (attendance == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Verify session belongs to this teacher
+            SessionEntity session = sessionRepository.findBySessionIdAndCreatedByUsername(
+                attendance.getSessionId(), currentUsername);
+            if (session == null) {
+                return ResponseEntity.status(403).build(); // Not teacher's session
+            }
+
+            // Update allowed fields
+            if (updates.containsKey("status")) {
+                String statusStr = (String) updates.get("status");
+                attendance.setStatus(AttendanceEntity.Status.valueOf(statusStr));
+            }
+            if (updates.containsKey("meta")) {
+                attendance.setMeta((String) updates.get("meta"));
+            }
+
+            AttendanceEntity saved = attendanceRepository.save(attendance);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * Delete attendance record (only for teacher's sessions)
+     */
+    @DeleteMapping("/attendances/{id}")
+    public ResponseEntity<Void> deleteAttendance(@PathVariable java.util.UUID id) {
+        String currentUsername = getCurrentUsername();
+        if (currentUsername == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        try {
+            AttendanceEntity attendance = attendanceRepository.findById(id).orElse(null);
+            if (attendance == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Verify session belongs to this teacher
+            SessionEntity session = sessionRepository.findBySessionIdAndCreatedByUsername(
+                attendance.getSessionId(), currentUsername);
+            if (session == null) {
+                return ResponseEntity.status(403).build(); // Not teacher's session
+            }
+
+            attendanceRepository.deleteById(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

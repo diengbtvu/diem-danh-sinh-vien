@@ -515,90 +515,8 @@ export const TeacherDashboard: React.FC = () => {
     }
   };
 
-  // Student CRUD functions
-  const createStudent = async () => {
-    if (!studentForm.mssv || !studentForm.hoTen || !studentForm.maLop) {
-      setError('Vui lòng điền đầy đủ thông tin sinh viên');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      let endpoint;
-      if (user?.role === 'GIANGVIEN') {
-        // Teachers can create students for their classes
-        endpoint = buildApiUrl(API_CONFIG.ENDPOINTS.TEACHER.STUDENTS);
-      } else {
-        // Admins use admin endpoint
-        endpoint = buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.STUDENTS);
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        },
-        body: JSON.stringify(studentForm)
-      });
-
-      if (response.ok) {
-        setStudentForm({});
-        setPageStu(0);
-        fetchStudents();
-        setSuccess('Tạo sinh viên thành công');
-      } else {
-        const errorText = await response.text();
-        setError(errorText || 'Lỗi tạo sinh viên');
-      }
-    } catch (error) {
-      setError('Lỗi kết nối');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const importStudents = async () => {
-    if (!csvText.trim()) {
-      setError('Vui lòng nhập dữ liệu CSV');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      let endpoint;
-      if (user?.role === 'GIANGVIEN') {
-        // Teachers can import students for their classes
-        endpoint = buildApiUrl(API_CONFIG.ENDPOINTS.TEACHER.STUDENTS_IMPORT);
-      } else {
-        // Admins use admin endpoint
-        endpoint = buildApiUrl(API_CONFIG.ENDPOINTS.ADMIN.STUDENTS_IMPORT);
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain',
-          ...getAuthHeader()
-        },
-        body: csvText
-      });
-
-      if (response.ok) {
-        setCsvText('');
-        setPageStu(0);
-        fetchStudents();
-        setSuccess('Import sinh viên thành công');
-      } else {
-        const errorText = await response.text();
-        setError(errorText || 'Lỗi import sinh viên');
-      }
-    } catch (error) {
-      setError('Lỗi kết nối');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Note: Student import is now ADMIN-ONLY
+  // Teachers can only view students in their classes
 
   const handleViewSession = (sessionId: string) => {
     navigate(`/attendance-detail?sessionId=${sessionId}`);
@@ -1186,13 +1104,6 @@ export const TeacherDashboard: React.FC = () => {
                   <Typography variant="h5">
                     Sinh viên
                   </Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={createStudent}
-                  >
-                    Tạo sinh viên
-                  </Button>
                 </Box>
 
                 <Card>
@@ -1204,84 +1115,15 @@ export const TeacherDashboard: React.FC = () => {
                         onChange={(e) => setStudentSearch(e.target.value)}
                         size="small"
                       />
-                      <Stack direction="row" spacing={2}>
-                        <TextField
-                          label="MSSV"
-                          value={studentForm.mssv || ''}
-                          onChange={(e) => setStudentForm({...studentForm, mssv: e.target.value})}
-                          size="small"
-                        />
-                        <TextField
-                          label="Họ tên"
-                          value={studentForm.hoTen || ''}
-                          onChange={(e) => setStudentForm({...studentForm, hoTen: e.target.value})}
-                          size="small"
-                        />
-                        {user?.role === 'GIANGVIEN' ? (
-                          <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <InputLabel>Mã lớp</InputLabel>
-                            <Select
-                              value={studentForm.maLop || ''}
-                              onChange={(e) => setStudentForm({...studentForm, maLop: e.target.value})}
-                              label="Mã lớp"
-                            >
-                              {teacherClasses.map((className) => (
-                                <SelectMenuItem key={className} value={className}>
-                                  {className}
-                                </SelectMenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        ) : (
-                          <TextField
-                            label="Mã lớp"
-                            value={studentForm.maLop || ''}
-                            onChange={(e) => setStudentForm({...studentForm, maLop: e.target.value})}
-                            size="small"
-                          />
-                        )}
-                      </Stack>
                     </Stack>
 
-                    {/* CSV Import */}
-                    <Box mb={3}>
-                      <Typography variant="h6" gutterBottom>
-                        Import CSV
+                    {/* Info: Import is now admin-only */}
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                      <Typography variant="body2">
+                        <strong>Lưu ý:</strong> Chỉ Admin mới có quyền import/quản lý sinh viên. 
+                        Giảng viên có thể xem danh sách sinh viên trong các lớp đã tạo.
                       </Typography>
-                      <Typography variant="body2" color="textSecondary" gutterBottom>
-                        {user?.role === 'GIANGVIEN'
-                          ? 'Nhập danh sách sinh viên cho các lớp bạn quản lý. Định dạng: MSSV,Họ tên,Mã lớp'
-                          : 'Nhập danh sách sinh viên. Định dạng: MSSV,Họ tên,Mã lớp'
-                        }
-                      </Typography>
-                      <TextField
-                        multiline
-                        rows={4}
-                        fullWidth
-                        placeholder={user?.role === 'GIANGVIEN'
-                          ? `20210001,Nguyễn Văn A,${teacherClasses[0] || 'IT4409'}\n20210002,Trần Thị B,${teacherClasses[0] || 'IT4409'}`
-                          : 'MSSV,Họ tên,Mã lớp\n20210001,Nguyễn Văn A,IT4409\n20210002,Trần Thị B,IT4409'
-                        }
-                        value={csvText}
-                        onChange={(e) => setCsvText(e.target.value)}
-                        sx={{ mb: 2 }}
-                      />
-                      <Stack direction="row" spacing={2}>
-                        <Button
-                          variant="outlined"
-                          startIcon={<Upload />}
-                          onClick={importStudents}
-                          disabled={!csvText.trim()}
-                        >
-                          Import CSV
-                        </Button>
-                        {user?.role === 'GIANGVIEN' && teacherClasses.length > 0 && (
-                          <Typography variant="caption" color="textSecondary" sx={{ alignSelf: 'center' }}>
-                            Lớp của bạn: {teacherClasses.join(', ')}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </Box>
+                    </Alert>
 
                     {students?.content && students.content.length > 0 ? (
                       <>

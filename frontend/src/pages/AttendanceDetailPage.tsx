@@ -25,6 +25,11 @@ type Attendance = {
   faceConfidence: number
   status: 'ACCEPTED' | 'REVIEW' | 'REJECTED'
   meta: string
+  // Enriched student info
+  hoTen?: string
+  maLop?: string
+  studentFound?: boolean
+  displayName?: string
 }
 
 type Student = {
@@ -88,8 +93,20 @@ export default function AttendanceDetailPage() {
   // API prefix based on role
   const apiPrefix = isAdmin ? '/api/admin' : isTeacher ? '/api/teacher' : '/api/admin'
   
+  // Get correct back URL based on role
+  const getBackUrl = () => {
+    console.log('getBackUrl - userRole:', userRole, 'isAdmin:', isAdmin, 'isTeacher:', isTeacher);
+    if (isAdmin) {
+      return '/admin-dashboard';
+    } else if (isTeacher) {
+      return '/teacher-dashboard';
+    } else {
+      return '/';
+    }
+  }
+  
   // Debug logs
-  console.log('User role:', userRole, 'isAdmin:', isAdmin, 'isTeacher:', isTeacher, 'apiPrefix:', apiPrefix)
+  console.log('User role:', userRole, 'isAdmin:', isAdmin, 'isTeacher:', isTeacher, 'apiPrefix:', apiPrefix, 'backUrl:', getBackUrl())
 
   const fetchSession = useCallback(async () => {
     if (!sessionId) {
@@ -115,35 +132,32 @@ export default function AttendanceDetailPage() {
       const params = new URLSearchParams()
       params.append('page', page.toString())
       params.append('size', '20')
-      params.append('sortBy', sort.column)
-      params.append('sortDir', sort.direction)
-      if (search) params.append('search', search)
-      if (statusFilter) params.append('status', statusFilter)
-
-      if (isTeacher && sessionId) {
-        // Teacher API: /api/teacher/sessions/{sessionId}/attendances
-        endpoint = `${apiPrefix}/sessions/${sessionId}/attendances?${params.toString()}`
-      } else if (isAdmin) {
-        // Admin API: /api/admin/attendances?sessionId=...
-        if (sessionId) {
-          params.append('sessionId', sessionId)
-        }
-        endpoint = `${apiPrefix}/attendances?${params.toString()}`
+      
+      // Always use enrichStudent for both teacher and admin
+      if (sessionId) {
+        params.append('sessionId', sessionId)
+        params.append('enrichStudent', 'true')
+        // Use public endpoint that supports enrichStudent parameter
+        endpoint = `/api/attendances?${params.toString()}`
       } else {
-        throw new Error('Unauthorized')
+        endpoint = `${apiPrefix}/attendances?${params.toString()}`
       }
 
+      console.log('Fetching attendances with enrichment from:', endpoint)
       const response = await apiRequest(endpoint)
       if (response.ok) {
         const data = await response.json()
+        console.log('Enriched attendance data received. First item:', data.content?.[0])
         setAttendances(data)
+      } else {
+        console.error('Failed to fetch attendances:', response.status)
       }
     } catch (error) {
       console.error('Error fetching attendances:', error)
     } finally {
       setLoading(false)
     }
-  }, [sessionId, page, sort, search, statusFilter, apiPrefix, isAdmin, isTeacher])
+  }, [sessionId, page, apiPrefix, isAdmin, isTeacher])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -230,10 +244,16 @@ export default function AttendanceDetailPage() {
   }, [session, fetchStudents])
 
   const updateAttendance = async () => {
-    if (!editingAttendance || !isAdmin) return // Only admin can edit
+    if (!editingAttendance) return
     setLoading(true)
     try {
-      const response = await apiRequest(`/api/admin/attendances/${editingAttendance.id}`, {
+      // Use appropriate API endpoint based on role
+      const endpoint = isTeacher 
+        ? `/api/teacher/attendances/${editingAttendance.id}`
+        : `/api/admin/attendances/${editingAttendance.id}`;
+      
+      console.log('Updating attendance via:', endpoint);
+      const response = await apiRequest(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -245,24 +265,42 @@ export default function AttendanceDetailPage() {
         setEditingAttendance(null)
         fetchAttendances()
         fetchStats()
+      } else {
+        console.error('Update failed:', response.status);
+        alert('Lỗi cập nhật: ' + response.status);
       }
+    } catch (error) {
+      console.error('Update error:', error);
+      alert('Lỗi kết nối');
     } finally {
       setLoading(false)
     }
   }
 
   const deleteAttendance = async (id: string) => {
-    if (!isAdmin) return // Only admin can delete
     if (!confirm('Bạn có chắc muốn xóa bản ghi điểm danh này?')) return
     setLoading(true)
     try {
-      const response = await apiRequest(`/api/admin/attendances/${id}`, {
+      // Use appropriate API endpoint based on role
+      const endpoint = isTeacher
+        ? `/api/teacher/attendances/${id}`
+        : `/api/admin/attendances/${id}`;
+      
+      console.log('Deleting attendance via:', endpoint);
+      const response = await apiRequest(endpoint, {
         method: 'DELETE'
       })
       if (response.ok) {
+        console.log('Delete successful');
         fetchAttendances()
         fetchStats()
+      } else {
+        console.error('Delete failed:', response.status);
+        alert('Lỗi xóa: ' + response.status);
       }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Lỗi kết nối');
     } finally {
       setLoading(false)
     }
@@ -336,7 +374,11 @@ export default function AttendanceDetailPage() {
           <IconButton
             edge="start"
             color="inherit"
-            onClick={() => navigate('/admin')}
+            onClick={() => {
+              const backUrl = getBackUrl();
+              console.log('Back button clicked, navigating to:', backUrl);
+              navigate(backUrl);
+            }}
             sx={{ mr: 2 }}
           >
             <ArrowBack />
@@ -551,13 +593,30 @@ export default function AttendanceDetailPage() {
               },
               {
                 id: 'mssv',
-                label: 'MSSV',
-                sortable: true
-              },
-              {
-                id: 'mssv',
-                label: 'Họ tên',
-                format: (value: any) => getStudentName(value)
+                label: 'Sinh viên',
+                format: (value: any, row: any) => {
+                  // Safely access row properties with fallbacks
+                  const mssv = row?.mssv || value || 'N/A'
+                  const hoTen = row?.hoTen || 'Không tìm thấy'
+                  const studentFound = row?.studentFound === true
+                  
+                  return (
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {mssv}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          color: studentFound ? 'success.main' : 'error.main',
+                          fontWeight: 500
+                        }}
+                      >
+                        {hoTen}
+                      </Typography>
+                    </Box>
+                  )
+                }
               },
               {
                 id: 'capturedAt',
@@ -598,7 +657,7 @@ export default function AttendanceDetailPage() {
             onSearch={setSearch}
             searchPlaceholder="Tìm kiếm điểm danh..."
             loading={loading}
-            actions={isAdmin ? [
+            actions={(isAdmin || isTeacher) ? [
               {
                 label: 'Chỉnh sửa',
                 icon: <Edit />,

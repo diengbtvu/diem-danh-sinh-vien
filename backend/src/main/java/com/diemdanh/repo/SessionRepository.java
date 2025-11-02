@@ -47,5 +47,12 @@ public interface SessionRepository extends JpaRepository<SessionEntity, String> 
     // Find specific session by ID and verify ownership
     @Query("SELECT s FROM SessionEntity s WHERE s.sessionId = :sessionId AND s.createdBy.username = :username")
     SessionEntity findBySessionIdAndCreatedByUsername(@Param("sessionId") String sessionId, @Param("username") String username);
+
+    // Analytics queries
+    List<SessionEntity> findByStartAtBetween(Instant start, Instant end);
+    
+    List<SessionEntity> findByMaLopAndStartAtBetween(String maLop, Instant start, Instant end);
+    
+    List<SessionEntity> findByCreatedByUsernameAndStartAtBetween(String username, Instant start, Instant end);
 }
 

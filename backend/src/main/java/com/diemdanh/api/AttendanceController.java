@@ -76,11 +76,14 @@ public class AttendanceController {
         AttendanceEntity.Status status;
         if (student == null || confidence == null) {
             status = AttendanceEntity.Status.REVIEW;
-        } else if (confidence >= 0.9) {
+        } else if (confidence >= 0.8) {
+            // Auto-accept if confidence >= 80%
             status = AttendanceEntity.Status.ACCEPTED;
-        } else if (confidence >= 0.7) {
+        } else if (confidence >= 0.6) {
+            // Review if confidence between 60-80%
             status = AttendanceEntity.Status.REVIEW;
         } else {
+            // Reject if confidence < 60%
             status = AttendanceEntity.Status.REJECTED;
         }
 
@@ -123,10 +126,65 @@ public class AttendanceController {
     }
 
     @GetMapping
-    public Page<AttendanceEntity> list(@RequestParam("sessionId") String sessionId,
-                                       @RequestParam(defaultValue = "0") int page,
-                                       @RequestParam(defaultValue = "20") int size) {
-        return attendanceRepository.findBySessionId(sessionId, PageRequest.of(page, size));
+    public org.springframework.http.ResponseEntity<?> list(
+            @RequestParam("sessionId") String sessionId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "false") boolean enrichStudent) {
+        
+        Page<AttendanceEntity> attendances = attendanceRepository.findBySessionId(
+            sessionId, 
+            PageRequest.of(page, size, org.springframework.data.domain.Sort.by("capturedAt").descending())
+        );
+        
+        if (!enrichStudent) {
+            return org.springframework.http.ResponseEntity.ok(attendances);
+        }
+        
+        // Enrich with student info
+        java.util.List<java.util.Map<String, Object>> enrichedContent = new java.util.ArrayList<>();
+        
+        for (AttendanceEntity attendance : attendances.getContent()) {
+            java.util.Map<String, Object> enriched = new java.util.HashMap<>();
+            enriched.put("id", attendance.getId());
+            enriched.put("sessionId", attendance.getSessionId());
+            enriched.put("mssv", attendance.getMssv());
+            enriched.put("faceLabel", attendance.getFaceLabel());
+            enriched.put("faceConfidence", attendance.getFaceConfidence());
+            enriched.put("status", attendance.getStatus());
+            enriched.put("capturedAt", attendance.getCapturedAt());
+            enriched.put("imageUrl", attendance.getImageUrl());
+            
+            // Lookup student
+            boolean studentFound = false;
+            String hoTen = "Không tìm thấy";
+            String maLop = "";
+            
+            if (attendance.getMssv() != null) {
+                StudentEntity student = studentRepository.findById(attendance.getMssv()).orElse(null);
+                if (student != null) {
+                    studentFound = true;
+                    hoTen = student.getHoTen();
+                    maLop = student.getMaLop();
+                }
+            }
+            
+            enriched.put("studentFound", studentFound);
+            enriched.put("hoTen", hoTen);
+            enriched.put("maLop", maLop);
+            enriched.put("displayName", attendance.getMssv() + " - " + hoTen);
+            
+            enrichedContent.add(enriched);
+        }
+        
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("content", enrichedContent);
+        response.put("totalElements", attendances.getTotalElements());
+        response.put("totalPages", attendances.getTotalPages());
+        response.put("number", attendances.getNumber());
+        response.put("size", attendances.getSize());
+        
+        return org.springframework.http.ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}/image")

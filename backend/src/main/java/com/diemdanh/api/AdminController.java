@@ -26,6 +26,9 @@ import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -192,25 +195,59 @@ public class AdminController {
             .orElse(ResponseEntity.notFound().build());
     }
 
-    // Bulk import students via CSV (mssv,maLop,hoTen) header optional
+    // Bulk import students via CSV (MSSV,Họ tên,Mã lớp) header optional
     @PostMapping(value = "/students/import", consumes = MediaType.TEXT_PLAIN_VALUE)
-    public List<StudentEntity> importStudents(@RequestBody String csv) {
+    public ResponseEntity<?> importStudents(@RequestBody String csv) {
         String[] lines = csv.split("\n");
-        new java.util.ArrayList<String>();
         boolean hasHeader = lines.length > 0 && lines[0].toLowerCase().contains("mssv");
         java.util.List<StudentEntity> batch = new java.util.ArrayList<>();
+        
+        int totalLines = 0;
+        int skippedExists = 0;
+        int skippedInvalid = 0;
+        
         for (int i = hasHeader ? 1 : 0; i < lines.length; i++) {
             String line = lines[i].trim();
             if (line.isEmpty()) continue;
+            
+            totalLines++;
             String[] cols = line.split(",");
-            if (cols.length < 3) continue;
+            if (cols.length < 3) {
+                skippedInvalid++;
+                System.err.println("Skipped invalid line: " + line);
+                continue;
+            }
+            
+            String mssv = cols[0].trim();
+            String hoTen = cols[1].trim();  // ✅ FIXED: cols[1] = Họ tên
+            String maLop = cols[2].trim();  // ✅ FIXED: cols[2] = Mã lớp
+            
+            // Skip if student already exists
+            if (studentRepository.existsById(mssv)) {
+                skippedExists++;
+                continue;
+            }
+            
             StudentEntity s = new StudentEntity();
-            s.setMssv(cols[0].trim());
-            s.setMaLop(cols[1].trim());
-            s.setHoTen(cols[2].trim());
+            s.setMssv(mssv);
+            s.setHoTen(hoTen);  // ✅ FIXED: hoTen vào đúng field
+            s.setMaLop(maLop);  // ✅ FIXED: maLop vào đúng field
             batch.add(s);
         }
-        return studentRepository.saveAll(batch);
+        
+        List<StudentEntity> saved = studentRepository.saveAll(batch);
+        
+        // Return detailed response
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("imported", saved.size());
+        response.put("totalLines", totalLines);
+        response.put("skippedExists", skippedExists);
+        response.put("skippedInvalid", skippedInvalid);
+        response.put("message", String.format("Đã import %d sinh viên. Bỏ qua: %d (đã tồn tại), %d (dữ liệu không hợp lệ)", 
+            saved.size(), skippedExists, skippedInvalid));
+        
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(value = "/students", consumes = MediaType.APPLICATION_JSON_VALUE)

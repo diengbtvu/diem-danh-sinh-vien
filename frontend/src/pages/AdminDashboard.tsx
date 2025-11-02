@@ -483,7 +483,7 @@ export const AdminDashboard: React.FC = () => {
   const importStudents = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8082/api/admin/students/import', {
+      const response = await fetch('/api/admin/students/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain',
